@@ -1,0 +1,582 @@
+import sys
+import os
+import psutil
+sys.path.append('../tools/')
+import interactCfg
+import helperFunction
+import datetime
+import random
+from Bit import Bit
+from Qubit import *
+#from Gate import *
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
+import csv
+
+styleDic = {
+	"I":[" I ","C5"],
+	"X":["X","C1"],
+	"Y":["Y","C1"],
+	"Z":["Z","C1"],
+	"H":["H","C2"],
+	"S":["S","C8"],
+	"T":["T","C4"],
+	"CNOT":["+","C0"],
+	"Td":["Td","C6"],
+	"Sd":["Sd","C7"],
+	"M":["M","C3"]
+}
+qasmDic = {
+	"I":"id",
+	"X":"x",
+	"Y":"y",
+	"Z":"z",
+	"H":"h",
+	"S":"s",
+	"T":"t",
+	"CNOT":"cx",
+	"Td":"tdg",
+	"Sd":"sdg",
+	"M":"measure"	
+}
+
+ResLocation = "../results/"
+
+#the data-type is the elementary unit of executing and export
+class Circuit:
+	#mark the environment: we can execute the code when there is only one circuit in the environment
+	currentIDList = []
+	instance = None
+
+	def __init__(self,experimentName=None):
+		self.beginMemory = psutil.Process(os.getpid()).memory_info().rss
+		self.endMemory = 0
+		self.beginTime = datetime.datetime.now()
+		self.endTime = 0
+		if experimentName == None:
+			dt = self.beginTime
+			experimentName = "EXP" + str(dt.date()) + '-' + str(dt.strftime('%X')).replace(':','.')
+		self.name = experimentName
+		#use this value to uniquely identify
+		self.ids = id(self)
+		#create a new folder to save the experiment
+		if os.path.exists(ResLocation+self.name) == False:
+			#the whole result of the experiment is stored in this folder
+			try:
+				os.makedirs(ResLocation+self.name) 
+			except OSError as oe:
+				interactCfg.writeErrorMsg(oe)		
+		self.urls = ResLocation+self.name
+		#each qubit stands for a individual dimension
+		#see /doc/Class-relation.doc for details
+		self.qubitExecuteList = {}
+		self.qubitNum = 0
+		Circuit.currentIDList.append(self.ids)
+		Circuit.instance = self
+		#put all the qubit, which need measurement, in this list
+		self.measureList = []
+		#record the execute mode of the current instance
+		self.mode = interactCfg.readCfgEM()
+		#print information
+		self.__printPreMsg()
+
+	#the destory function
+	def __del__(self):
+		ids = id(self)
+		if ids in Circuit.currentIDList:
+			Circuit.currentIDList.remove(id(self))
+		else:
+			return
+
+	#check the environment: whether the current circuit is equal to this instance 
+	def checkEnvironment(self):
+		circuitNum = len(Circuit.currentIDList)
+		if self.qubitNum != len(self.qubitExecuteList):
+			return False
+		#there only can be one instance and the id of this instance must be equal with self.ids
+		if circuitNum == 1 and Circuit.currentIDList[0] == self.ids:
+			return True
+		try:
+			strs = "there are " + str(len(Circuit.currentIDList)) + " Circuit instance, please check your code"
+			raise EnvironmentError(strs)
+		except EnvironmentError as ee:
+			interactCfg.writeErrorMsg(ee.value)
+
+	#draw the circuit according to the qubitExecuteList
+	def __exportCircuit(self):
+		if self.checkEnvironment():
+			print("begin drawing the circuit...")
+			#set the canvas
+			Fig = plt.figure('circuit',figsize=(12,6))                      
+			#set the axis off
+			plt.axis('off')
+			#devide the canvas into 1row 1col, and our pic will be draw on the first place(from up to down, from left to right)
+			Ax = Fig.add_subplot(111)
+			############################draw the line according to self.qubitNum###########################
+			partition = 100 // self.qubitNum
+			for i in range(0,self.qubitNum):
+				X = range(0,100)
+				Y = [i*partition] * 100
+				Ax.plot(X,Y,'#000000')
+			############################the line has been completed########################################
+			
+			############################draw the gate according to self.qubitExecuteList###################
+			j = 0
+			for ids in self.qubitExecuteList.keys():
+				#label the ids
+				label = 'Q' + str(ids)
+				Ax.annotate(label,xy=(0, j*partition), xytext=(-4, j*partition-0.5),size=12,)
+				#draw the gate
+				executeList = self.qubitExecuteList[ids]
+				x_position = 4
+				for item in executeList:
+					gate = item.split(" ")[0]
+					style = "square"
+					#the gate 'NULL' was stored to the list is to occupy the postion so that we can draw the circuit easily
+					if gate == 'NULL':
+						x_position += 5
+						continue
+					#adjust the length of the gate string
+					try:
+						gateName = styleDic[gate][0]
+						gateColor = styleDic[gate][1]
+					except KeyError as ke:
+						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist")
+					if gateName == "+":
+						style = "circle"
+						#wheter the current qubit is the control-qubit
+						targetQubit = item.split(" ")[1].split(",")[1]
+						controlQubit = item.split(" ")[1].split(",")[0]
+						indexOfTarget = 0
+						#get the index of the target qubit
+						for tmp in self.qubitExecuteList.keys():
+							if str(tmp) != targetQubit:
+								indexOfTarget += 1
+							else:
+								break
+						#draw a red circle in the control qubit
+						if str(ids) == controlQubit:
+							smaller = min(indexOfTarget,j)
+							bigger = max(indexOfTarget,j)
+							x1 = [x_position] * (bigger * partition - smaller * partition)
+							y1 = range(smaller * partition,bigger * partition)
+							Ax.plot(x1,y1,gateColor)
+							ann = Ax.annotate("1",
+                  				xy=(1, 20), xycoords='data',color=gateColor,
+                  				xytext=(x_position, j*partition), textcoords='data',
+                  				size=6, va="center", ha="center",
+                  				bbox=dict(boxstyle="circle", fc=gateColor,pad=0.3,ec=gateColor),
+                  			)
+							x_position += 5
+                  			#don't draw the CX
+							continue
+					ann = Ax.annotate(gateName,
+                  		xy=(1, 20), xycoords='data',
+                  		xytext=(x_position, j*partition), textcoords='data',color='w',
+                  		size=12, va="center", ha="center",
+                  		bbox=dict(boxstyle=style, fc=gateColor,pad=0.3,ec=gateColor),
+                  		)
+					x_position += 5
+				j += 1
+			############################the gate has completed########################################
+			#plt.show()
+			#save the circuit
+			Fig.savefig(self.urls + "/circuit.jpg")			
+			print("the circuit has been stored in " + self.urls.split("..")[1]  + "/circuit.jpg")
+			print("################## the circuit has been drawn ###################\n")
+			return True
+		else:
+			interactCfg.writeErrorMsg("the circuit instance is wrong, please check your code")
+
+	#translate the code of the current circuit to QASM, so that they can be executed on IBMQX
+	def __QASM(self):
+		print("begin export the QASM code of the circuit...")
+		if self.checkEnvironment():
+			code = open(self.urls+"/qasm.txt","w")
+			codeHeader = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + str(self.qubitNum) + '];creg c[' + str(self.qubitNum) + '];'
+			code.write(codeHeader)
+			code.write("\n")
+			#get the ids of the qubit
+			qubitList = []
+			for ids in self.qubitExecuteList.keys():
+				qubitList.append(ids)
+			#get the max length of the execute path
+			maxGate = 0
+			for i in range(0,self.qubitNum):
+				if maxGate < len(self.qubitExecuteList[qubitList[i]]):
+					maxGate = len(self.qubitExecuteList[qubitList[i]])
+			#draw the circuit 
+			for m in range(0,maxGate):
+				for n in range(0,self.qubitNum):
+					content = self.qubitExecuteList[qubitList[n]]
+					length = len(content)
+					#if there is no element to be draw, skip the loop
+					if m > length-1:
+						continue
+					item = content[m]
+					qubits = item.split(" ")[1].split(",")
+					gate = item.split(" ")[0]
+					if gate == 'NULL':
+						continue
+					try:
+						gate = qasmDic[gate]
+					except KeyError as ke:
+						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist")
+					#if the gate is CNOT and the current qubit is the target, that is ,
+					#the current qubit is in the 2th postion, then don't draw the gate
+					if gate == "cx" and str(qubits[1]) == str(qubitList[n]):
+						continue
+					code.write(gate + " ")
+					if gate == "measure":
+						if len(qubits) != 1:
+							try:
+								raise CodeError("Can't measure more than one qubit simultaneously")
+							except CodeError as ce:
+								interactCfg.writeErrorMsg(ce.value)
+						code.write("q[" + qubits[0] + "] -> c[" + qubits[0] +"];")
+						code.write("\n")
+						continue
+					for i in range(0,len(qubits)):
+						code.write("q[" + qubits[i] + "]")
+						if i != len(qubits)-1:
+							code.write(",")
+					code.write(";")
+					code.write("\n")					
+			print("the code has been stored in " + self.urls.split("..")[1] + "/qasm.txt")
+			print("################ the QASM code has been exported ################\n")
+			return True
+		else:
+			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
+
+	#export the result of the measurement to charts
+	def __exportChart(self,result:list,prob:list,title:str):
+		print("begin exporting the result of measurements to charts...")
+		if self.checkEnvironment():
+			number = len(result)
+			#the dimen of the result must be same with the prob
+			if number != len(prob):
+				interactCfg.writeErrorMsg("the dimension of the measurement result is not equal, please check your code")
+			###################################drawing the charts###################################
+			#set the canvas
+			Fig = plt.figure('chart',figsize=(12,12))
+			#plt.title("11")
+			#there are two sub-pictures in this picture
+			Ax = Fig.add_subplot(111)
+			Ax.set_title(title+ ':bar chart')
+			plt.grid(True)
+			#set the bar width
+			bar_width = 0.5
+			#set the position of the elements in x-axis
+			xticks = []
+			for i in range(0,number):
+				xticks.append(i + bar_width/2)
+			colors = []
+			#draw the line-chart
+			bars = Ax.bar(xticks, prob, width=bar_width, edgecolor='none')
+			Ax.set_ylabel('Prob')
+			Ax.set_xlabel('State')
+			#set the position of the x-label
+			Ax.set_xticks(xticks)
+			Ax.set_xticklabels(result)
+			#set the range of X-axis and y-axis
+			Ax.set_xlim([bar_width/2-0.5, number-bar_width/2])
+			Ax.set_ylim([0, 1])
+			#set the color to bar
+			for bar, color in zip(bars, colors):
+			    bar.set_color(color)
+			#write the probability on the top of each bar of the bat chart
+			for item in range(0,len(xticks)):
+				x_position = xticks[item]
+				y_position = prob[item]
+				if y_position < 0.1:
+					yPosition = y_position + 0.01
+				else:
+					yPosition = y_position - 0.05
+				plt.text(x_position,yPosition,'{:.3f}'.format(y_position),ha='center',va='bottom')
+			# #draw the pir chart
+			# Ax = Fig.add_subplot(122)
+			# Ax.set_title(title + ':pie chart')
+			# labels = ['state:{}\n'.format(r) for r in result]
+			# #draw the pie-chart
+			# colors = ['#7199cf',"#EEC900",'#4fc4aa']
+			# #avoid the last element has the same color with the first element
+			# if number % len(colors) == 1:
+			# 	colors.append("#A3A3A3")
+			# Ax.pie(prob, labels=labels, colors=colors)
+
+			#save the picture
+			#plt.show()
+			Fig.savefig(self.urls + "/chart.jpg")			
+			print("the circuit has been stored in " + self.urls.split("..")[1]  + "/chart.jpg")
+			print("########### the chart of the circuit has been exported ##########\n")
+			return True
+		else:
+			interactCfg.writeErrorMsg("the instance is wrong, please check your code")	
+
+	#the aim of the function is to order the idList and get the right state according to the order 
+	#of the ids
+	def __orderTheId(self,idList:list,order:list):
+		for i in range(1,len(idList)):
+			tmp = i-1
+			while tmp >=0:
+				if idList[tmp] > idList[i]:
+					idList[i],idList[tmp] = idList[tmp],idList[i]
+					order[i],order[tmp] = order[tmp],order[i]
+					i = tmp
+				tmp -= 1
+		return order
+
+	#execute measurement on the qubits
+	def execute(self,executeTimes:int):
+		if self.checkEnvironment():
+			ampList = []
+			stateList = []
+			qubitList = self.measureList.copy()
+			hasMeasure = []
+			number = len(qubitList)
+			#record the order of the qubit
+			idList = []
+			for qubit in qubitList:
+				if qubit in hasMeasure:
+					continue
+				hasMeasure.append(qubit)
+				qs = qubit.entanglement
+				#the current qubit is not in entanglement
+				if qs == None:
+					result = qubit.decideProb()
+					#the result is two-dimen, result[0] is the list of amolitude, and result[1] is the corresponding state
+					ampList.append(result[0])
+					stateList.append(result[1])
+					idList.append(qubit.ids)
+					continue
+				#the current qubit is in entanglement
+				#find the other qubit ,which is also in qs.qubitList and self.measureList
+				qubitGroup = []
+				for item in qs.qubitList:
+					if item in qubitList:
+						#item will be measured with the current qubit simultaneously
+						#so delete the element from the list to avoid repeating measurement
+						#qubitList.remove(item)
+						if item not in hasMeasure:
+							hasMeasure.append(item)
+						qubitGroup.append(item)
+						idList.append(item.ids)
+				result = qubit.decideProb(qubitGroup)
+				ampList.append(result[0])
+				stateList.append(result[1])
+
+			#use the ampList to compute the end prob
+			#and the state to compute the end state
+			#e.g., prob = [0.5,0.5],state = ['11','00']
+			#the state is 0.7|11> + 0.7|00>
+			if len(ampList) == 0 and len(stateList) == 0:
+				interactCfg.writeErrorMsg("there is no qubit need to be measured!")
+				sys.exit()
+			#print(stateList)
+			prob = ampList[0]
+			state = stateList[0]
+			caseNum = 2 ** len(ampList)
+			for i in range(1,len(ampList)):
+				tmpProb = []
+				tmpState = []
+				for j in range(0,len(prob)):
+					for k in range(0,len(ampList[i])):
+						tmpProb.append(prob[j] * ampList[i][k])
+						tmpState.append(state[j] + stateList[i][k])
+				prob = tmpProb
+				state = tmpState
+
+			#delete the zero probility and it corresponding state, and get the result
+			probResult = []
+			stateResult = []
+			orderList = [i for i in range(0,number)]
+			order = self.__orderTheId(idList,orderList)
+
+			for index in range(0,len(prob)):
+				if prob[index] == 0:
+					continue
+				#set the order of qubits by ASC
+				newStateStr = ""
+				for o in order:
+					newStateStr += state[index][int(o)]
+				probResult.append(prob[index])
+				stateResult.append(newStateStr)
+			
+			#get the actual measure results according to the probResult
+			timesList = self.__randomM(executeTimes,probResult)
+			for p in range(0,len(probResult)):
+				probResult[p] = timesList[p] / executeTimes
+
+			#get the end time of the circuit
+			self.endTime = datetime.datetime.now()
+			self.endMemory = psutil.Process(os.getpid()).memory_info().rss
+			#get the end sequence of the ids of the qubit
+			title = ""
+			for qid in idList:
+				title += "q"
+				title += str(qid)
+
+			self.__printExecuteMsg(stateResult,probResult) 
+			############################exporting############################
+			self.__exportCircuit()
+			self.__QASM()
+			self.__exportChart(stateResult,probResult,title)
+			self.__exportOriData(stateResult,timesList)
+			#call the destory function to clean the current instance
+			self.__del__()
+			#post the qasm code to ibm API according to the users's input:Y/N
+			print("......")
+			# ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
+			# if ibmBool == 'Y' or ibmBool == 'y':
+			# 	#yes
+			# 	print("yes")
+			# elif ibmBool == 'N' or ibmBool == 'n':
+			# 	#no
+			# 	print("no")
+			# else:
+			# 	print("Invalid input! Only 'Y' or 'N' is allowed! ")
+		else:
+			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
+
+	#split the unit interval into len(probList) parts, and the length of iTH interval is probList[i]
+	#product random number for executeTimes, then count the times of number in each interval 
+	def __randomM(self,executeTimes,probList):
+		timesList = [0] * len(probList)
+		#product the prob interval
+		interval = []
+		sums = 0
+		for index in range(0,len(probList)):
+			try:
+				if index == 0:
+					interval.append([0,probList[0]])
+				else:
+					interval.append([sums,sums+probList[index]])
+				sums += probList[index]
+			except KeyError as ke:
+				interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist!")
+		#the error rate is lower then 0.001
+		if abs(1 - sums) > 0.001:
+			try:
+				raise NotNormal()
+			except NotNormal as nn:
+				interactCfg.writeErrorMsg(nn)
+		#product random number for executeTimes
+		for i in range(0,executeTimes):
+			#judge the number in which interval
+			randomNumber = random.uniform(0,1)
+			#the demin of timesList and interval must be same
+			for j in range(0,len(interval)):
+				if randomNumber >= interval[j][0] and randomNumber < interval[j][1]:
+					timesList[j] = timesList[j] + 1
+		return timesList
+
+	#count the numbers of the gate
+	def __countGate(self):
+		#count the measurement number of the circuit
+		Measure = len(self.measureList)
+		#count the single-qubit and the double-qubit gate number of the circuit
+		Single = 0
+		Double = 0
+		Other = 0
+		for key in self.qubitExecuteList:
+			for operator in self.qubitExecuteList[key]:
+				gate = operator.split(" ")[0]
+				#the gate NULL is to occupy the position
+				if gate == "NULL":
+					continue
+				if gate == "X" or gate == "Y" or gate == "Z" or gate == "S" or gate == "T" or \
+				gate == "Td" or gate == "Sd" or gate == "H" or gate == "I":
+					Single += 1
+				elif gate == "CNOT":
+					Double += 1
+				elif gate == "M":
+					continue
+				else:
+					Other += 1
+		#the number of the CNOT count twice when stored in the list, so we should divide 2
+		#and the number must be even number
+		if Double & 1 != 0:
+			#the number is odd
+			interactCfg.writeErrorMsg("we count the CNOT gate twice, the number of this gate must be even number; \
+				but we get an odd number. Please check your code!")
+		Double = Double // 2 
+		num = {'measure':Measure,'single-qubit':Single,'double-qubit':Double,'other':Other}
+		return num
+
+	#print the execute message to cmd 
+	def __printExecuteMsg(self,stateList,probList):
+		gateNum = self.__countGate()
+		#the total execute time, the unit of the time is second
+		totalTime = (self.endTime - self.beginTime).total_seconds()
+		#the total memory, the unit of the memory is MB
+		totalMemory = ((self.endMemory - self.beginMemory) / 1024) / 1024
+		if self.mode == 'theory':
+			singleError = 'None'
+			doubleError = 'None'
+		elif self.mode == 'simulator':
+			singleError = 0
+			for q in self.measureList:
+				error = interactCfg.readCfgGE('single',q.ids)
+				singleError += error
+			singleError = "%.2f%%"%(singleError / len(self.measureList) * 100)
+			doubleError = "%.2f%%"%(interactCfg.readCfgGE('multi') * 100)
+		else:
+			try:
+				raise ExecuteModeError()
+			except ExecuteModeError as em:
+				interactCfg.writeErrorMsg(em)
+		msg = "total qubits: "+ str(self.qubitNum) + "\n"
+		msg += "the number of the measured qubits: "+ str(gateNum['measure']) + "\n"
+		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
+		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"
+		msg += "execute Mode: " + self.mode + "\n"
+		msg += "single-qubit error: " + singleError + "\n"
+		msg += "double-qubit error: " + doubleError + "\n"	
+		msg += "result: " + "\n"
+		for i in range(0,len(stateList)):
+			msg += "        |" + str(stateList[i]) + ">----" + "%.2f%%"%(probList[i] * 100) + "\n"
+		msg += "execute time: " + str(totalTime) + "s\n"
+		msg += "memory: " + "{:.4f}".format(totalMemory) + "MB\n"
+		msg += "################ the circuit has been executed ##################\n"
+		#write the message to cmd and the file named "result.log"
+		print(msg)
+		try:
+			file = open(self.urls + "/result.log","a")
+			file.write(msg)
+			file.close()
+		except IOError as io:
+			interactCfg.writeErrorMsg(io)
+		return True
+	def __printPreMsg(self):
+		msg = "\n"
+		msg += "################ begin executing the  circuit ################### \n" 
+		msg += "the experiment: " + self.name
+		#write the message to cmd and the file named "result.log"
+		print(msg)
+		try:
+			file = open(self.urls + "/result.log","a")
+			file.write(msg)
+			file.close()
+		except IOError as io:
+			interactCfg.writeErrorMsg(io)
+		return True			
+	#export the original data of the experiment to the originalData.csv
+	def __exportOriData(self,stateList:list,timesList:list):
+		print("begin exporting original date to csv...")
+		if len(stateList) != len(timesList):
+			interactCfg.writeErrorMsg("there are something wrong with you code!")
+		csvFile = open(self.urls + "/originalData.csv","w")
+		writer = csv.writer(csvFile)
+		writer.writerow(['state', 'times'])
+		data = []
+		for i in range(0,len(stateList)):
+			tuples = (str(stateList[i]),str(timesList[i]))
+			data.append(tuples)
+		writer.writerows(data)
+		csvFile.close()
+		print("the csv file has been stored in " + self.urls.split("..")[1]  + "/originalData.csv")
+		print("########### the original data has been exported ##########\n")
+		return True
+
+		

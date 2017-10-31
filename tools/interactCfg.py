@@ -1,0 +1,125 @@
+#!/usr/bin/python3
+#interact with the cfg file
+import datetime
+import json
+import sys
+sys.path.append('../baseClass/')
+cfgLocation = "../config/"
+from Circuit import *
+
+#write the error message to LOG when error occurs
+def writeErrorMsg(msg):
+	print("Unfortunately, the following errors were happened in QuanSim when running the code:")
+	print(msg)
+	circuit = Circuit.instance
+	if circuit == None:
+		print("there is no circuit instance in the code, please add at least one instance!")
+	else:	
+		file = open(circuit.urls + "/errorMsg.txt","w")
+		time = datetime.datetime.now()
+		errorStr = "Time:" + str(time) + "\r\n"
+		errorStr += "Error Message:"
+		errorStr += str(msg)
+		file.write(errorStr)
+	sys.exit()
+
+#read the config file about the executeMode (EM for short)
+def readCfgEM():
+	try:
+		EMcfg = cfgLocation + "executeMode.cfg"
+		confFile = open(EMcfg,"r")
+		content = confFile.readline()
+		mode = json.loads(content)['executeMode']
+	except IOError as io:
+		writeErrorMsg(io)
+	except ValueError as ve:
+		writeErrorMsg(ve)
+	confFile.close()
+	return mode
+
+#read the config file about the output precision (P for short)
+#the type of return-value is int
+def readCfgP():
+	try:
+		EMcfg = cfgLocation + "executeMode.cfg"
+		confFile = open(EMcfg,"r")
+		content = confFile.readline()
+		content = confFile.readline()
+		pre = json.loads(content)['precision']
+		pre = int(pre)
+	except IOError as io:
+		writeErrorMsg(io)
+	except ValueError as ve:
+		writeErrorMsg(ve)
+	except TypeError as te:
+		writeErrorMsg(te)
+	confFile.close()
+	return pre			
+
+#read the config file about the assignment error (ER for short)
+def readCfgER(ids):
+	try:
+		ERcfg = cfgLocation + "errorRate.cfg"
+		confFile = open(ERcfg,"r")
+		content = confFile.readline()
+		errorList = json.loads(content)['assignmentError']
+		#our data is equal with IBMqx5, there are only 15qubits; so we only have 15 items 
+		#if current id is bigger then 15, compute ids%15
+		errorRate = float(errorList[str(ids%15)])
+	except IOError as io:
+		writeErrorMsg(io)
+	except ValueError as ve:
+		writeErrorMsg(ve)
+	except KeyError as ke:
+		writeErrorMsg(ke)
+	confFile.close()
+	return errorRate
+
+#read the config file about the gate error (GE for short)
+#if the para gateType == single, then get the single-qubit gate error according to the qid
+#if the para gateType == multi, then get the multi-qubit gate error; 
+#in the second case, all the qubit have the same error rate
+def readCfgGE(gateType:str,qid = None):
+	if gateType == 'single' and qid == None:
+		writeErrorMsg("You want to get the single-qubit gate error, but don't give the id of the qubit!") 
+	try:
+		ERcfg = cfgLocation + "errorRate.cfg"
+		confFile = open(ERcfg,"r")
+		content = confFile.readlines()
+		for line in content:
+			js = json.loads(line)
+			if gateType in js.keys():
+				if gateType == "single":
+					errorRate = float(js[gateType][str(qid%15)])
+				elif gateType == "multi":
+					errorRate = float(js[gateType])
+				else:
+					writeErrorMsg("There are only two kinds of gate errors: 'single' or 'multi'; but you gave another one!")
+	except IOError as io:
+		writeErrorMsg(io)
+	except ValueError as ve:
+		writeErrorMsg(ve)
+	except KeyError as ke:
+		writeErrorMsg(ke)
+	confFile.close()
+	return errorRate	
+
+#read the config file about the personal message on IBMQX(PM for short)
+def readCfgPM():
+	result = {}
+	try:
+		message = cfgLocation + "IBMToken.cfg"
+		confFile = open(message,"r")
+		lines = confFile.readlines()
+		for line in lines:			
+			pm = json.loads(line)
+			result = dict(result,**pm)
+	except IOError as io:
+		writeErrorMsg(io)
+	except ValueError as ve:
+		writeErrorMsg(ve)
+	except TypeError as te:
+		writeErrorMsg(te)
+	confFile.close()
+	return result	
+
