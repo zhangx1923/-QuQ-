@@ -1,130 +1,69 @@
 import sys
-sys.path.append('../baseClass/')
+sys.path.append('../userCode/')
 sys.path.append('../tools/')
-from Bit import Bit
-from Qubit import *
-from helperFunction import *
-from interactCfg import *
-from Circuit import Circuit
-from Gate import *
-from IBMQX import *
-import psutil
-import os
+from interactCfg import readCfgEA
+#from Grover import grover
 
 if __name__ == "__main__":
-	#this is the circuit of the Grover algorithm, there is a bug 
-	c = Circuit()
-	q = Qubit(3)
-	q1 = Qubit(4)
-	H(q)
-	H(q1)
-	H(q1)
-	CNOT(q,q1)
-	H(q1)
-	H(q)
-	H(q1)
-	X(q)
-	X(q1)
-	H(q1)
-	CNOT(q,q1)
-	H(q1)
-	X(q)
-	X(q1)
-	H(q)
-	H(q1)
-	M(q)
-	M(q1)
-	# qubitList = []
-	# for i in range(0,18):
-	# 	q = Qubit()
-	# 	qubitList.append(q)
-	# for j in range(0,15):
-	# 	CNOT(qubitList[j],qubitList[j+1])
-	# for k in range(0,10):
-	# 	M(qubitList[k])
-	c.execute(1000)
-	# q = Qubit()
-	# X(q)
-	# q1 = Qubit()
-	# q2 = Qubit()
-	# Sd(q1)
-	# I(q1)
-	# Y(q1)
-	# H(q)
-	# S(q)
-	# T(q1)
-	# #CNOT(q,q1)
-	# #CNOT(q1,q)
-	# QSprint(CNOT(q1,q))
+	print('-' * 80)
+	print('')
+	print(' '*30 + "Welcome to QuanSim!" + " "*20)
+	print('')
+	print('-' * 80)
+	# import_string = "from Grover import grover"
+	# exec(import_string)
+	# grover()
+	funName = ""
+	funFile = ""
+	functionList = readCfgEA()
+	way = -1
+	#there are two ways to execute the code
+	#1.give the function name as a parameter, the format of the parameter is xx()
+	#2.input the number of the function you want to run 
+	if len(sys.argv) == 2:
+		way = 1
+		#the first way
+		funName = sys.argv[1]
+		for function in functionList:
+			if funName == function[1]:
+				funFile = function[0]
+		if funFile == "":
+			print("Invalid parameter! The format of the function name must be xx()!")
+			way = 2
+	elif len(sys.argv) == 1:
+		#the second way
+		way = 2
+	else:
+		print("Invalid parameter! There can only be one parameter, and the format of it is 'xx()'!") 
+		way = 2
+	if way == 2:
+		#the second way
+		print(' '*26 + 'The following code is vaild:' + ' '*20)
+		
+		for i in range(1,len(functionList)+1):
+			print(str(i) + ':' + functionList[i-1][1])
+		ids = input("Please enter the number of the code you want to execute:")
+		try:
+			funName = functionList[int(ids)-1][1]
+			funFile = functionList[int(ids)-1][0]
+		except ValueError:
+			print("ValueError: The input is not a number!")
+			sys.exit(0)
+		except KeyError:
+			print("KeyError: The input number is invalid! ")
+			sys.exit(0)
+	print("The code you want to execute is :" + funFile + "." + funName)
+	import_string = "from " + funFile + " import " + funName.split("(")[0]
+	try:
+		exec(import_string)
+		exec(funName)
+	except ImportError:
+		print("ImportError: Can't import the file: " + import_string)
+		sys.exit(0)
+	except NameError:
+		print("NameError: " + funName + " isn't defined!")
+		sys.exit(0)
 
-	# q3 = Qubit()
-	# #q4 = Qubit()
-	# q5 = Qubit()
-	# S(q3)
-	# T(q5)
-	# Td(q5)
-	# CNOT(q5,q3)
-	# H(q2)
-	# M(q)
-	# M(q1)
-	# M(q2)
-	# M(q5)
-	# QSprint(q5)
-	#c.exportChart(['1','2','3','4','5','6','7','8','9','10'],['0.1','0.5','0.4','0.1','0.3','0.1','0.5','0.4','0.1','0.2'])
-	
-	#ibm.executeQASM()
-	# print('start drawing the circuit')
-	# c.drawCircuit()
-	# print('end drawing ')
-	# d = Circuit()
-	# print(Circuit.currentIDList)
-	# c = Circuit()
-	# print(Circuit.currentIDList)
-	# del d
-	# print(Circuit.currentIDList)
-	# print(Circuit.instance)
-	# print('-----------------------------')
-	# qubit = Qubit(0)
-	# QSprint(qubit)
-	# qubit1 = Qubit(1)
-	# H(qubit)
-	# QSprint(qubit)
-	# #del qubit1
-	# #a = Qubits(qubit,qubit1)
-	# #a.computeAmplitude()
-	# qs = Qubits(qubit,qubit1)
-	# QSprint(qs[0])
-	# print("----------------------------------------------------------------------------------------------------")
-	# QSprint(qs)
-	# print("----------------------------------------------------------------------------------------------------")
-	# QSprint(qubit)
-	# QSprint(qubit1)
-	# QSprint(CNOT(qubit,qubit1))
-	# QSprint(qubit1)
-	# print("----------------------------------------------------------------------------------------------------")
-	# q1 = Qubit(2)
-	# q2 = Qubit(3)
-	# q9 = Qubit(9)
-	# q7 = Qubit(7)
-	# H(q7)
-	# qss = Qubits(q1,q7)
-	# QSprint(qss)
-	# X(q2)
-	# qss1 = Qubits(q9,q2)
-	# QSprint(qss1)
-	# print("----------------------------------------------------------------------------------------------------")
-	# QSprint(CNOT(q2,q7))
-	# print("----------------------------------------------------------------------------------------------------")
-	# h = CNOT(q2,qubit)
-	# QSprint(h)
-	# print("----------------------------------------------------------------------------------------------------")
-	# Y(qubit)
-	# QSprint(h)
-	# QSprint(qubit)
-	# print(M(qubit))
-	# print(M(q2))
-	# print(M(q9))
-	# print(M(h))
 
 
 

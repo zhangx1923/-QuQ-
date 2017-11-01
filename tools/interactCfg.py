@@ -5,12 +5,14 @@ import json
 import sys
 sys.path.append('../baseClass/')
 cfgLocation = "../config/"
-from Circuit import *
 
 #write the error message to LOG when error occurs
 def writeErrorMsg(msg):
 	print("Unfortunately, the following errors were happened in QuanSim when running the code:")
 	print(msg)
+	
+	#import the Circuit class
+	from Circuit import Circuit
 	circuit = Circuit.instance
 	if circuit == None:
 		print("there is no circuit instance in the code, please add at least one instance!")
@@ -32,8 +34,8 @@ def readCfgEM():
 		mode = json.loads(content)['executeMode']
 	except IOError as io:
 		writeErrorMsg(io)
-	except ValueError as ve:
-		writeErrorMsg(ve)
+	except KeyError as ke:
+		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in executeMode.cfg, please check the cfg file!")
 	confFile.close()
 	return mode
 
@@ -49,8 +51,8 @@ def readCfgP():
 		pre = int(pre)
 	except IOError as io:
 		writeErrorMsg(io)
-	except ValueError as ve:
-		writeErrorMsg(ve)
+	except KeyError as ke:
+		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in executeMode.cfg, please check the cfg file!")
 	except TypeError as te:
 		writeErrorMsg(te)
 	confFile.close()
@@ -68,10 +70,8 @@ def readCfgER(ids):
 		errorRate = float(errorList[str(ids%15)])
 	except IOError as io:
 		writeErrorMsg(io)
-	except ValueError as ve:
-		writeErrorMsg(ve)
 	except KeyError as ke:
-		writeErrorMsg(ke)
+		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in errorRate.cfg, please check the cfg file!")
 	confFile.close()
 	return errorRate
 
@@ -97,10 +97,8 @@ def readCfgGE(gateType:str,qid = None):
 					writeErrorMsg("There are only two kinds of gate errors: 'single' or 'multi'; but you gave another one!")
 	except IOError as io:
 		writeErrorMsg(io)
-	except ValueError as ve:
-		writeErrorMsg(ve)
 	except KeyError as ke:
-		writeErrorMsg(ke)
+		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in errorRate.cfg, please check the cfg file!")
 	confFile.close()
 	return errorRate	
 
@@ -116,10 +114,28 @@ def readCfgPM():
 			result = dict(result,**pm)
 	except IOError as io:
 		writeErrorMsg(io)
-	except ValueError as ve:
-		writeErrorMsg(ve)
+	except KeyError as ke:
+		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in IBMToken.cfg, please check the cfg file!")
 	except TypeError as te:
 		writeErrorMsg(te)
+	confFile.close()
+	return result	
+
+#read the config file about the existing algorithm(EA for short)
+def readCfgEA():
+	try:
+		EAcfg = cfgLocation + "function.cfg"
+		confFile = open(EAcfg,"r")
+		content = confFile.readlines()
+		result = []
+		for line in content:
+			fileName = json.loads(line)['fileName']
+			function = json.loads(line)['entryFunction']
+			result.append([fileName,function])
+	except IOError as io:
+		writeErrorMsg(io)
+	except KeyError as ke:
+		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in function.cfg, please check the cfg file!")
 	confFile.close()
 	return result	
 

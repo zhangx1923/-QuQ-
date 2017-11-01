@@ -5,7 +5,7 @@ sys.path.append('../baseClass/')
 
 from Bit import Bit
 from Qubit import *
-from Circuit import *
+#from Circuit import *
 from interactCfg import *
 
 #return a str according to the number of qubits and the postion of 1

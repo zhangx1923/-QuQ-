@@ -3,9 +3,8 @@ from baseQubit import BaseQubit
 import sys
 sys.path.append('../tools/')
 import interactCfg
-import random
 import math
-from Circuit import Circuit
+#from Circuit import Circuit
 from Error import *
 
 #the init state of the qubit must be |0>

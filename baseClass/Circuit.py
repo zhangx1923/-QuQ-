@@ -184,7 +184,7 @@ class Circuit:
 			#save the circuit
 			Fig.savefig(self.urls + "/circuit.jpg")			
 			print("the circuit has been stored in " + self.urls.split("..")[1]  + "/circuit.jpg")
-			print("################## the circuit has been drawn ###################\n")
+			print("-------------------------- the circuit has been drawn --------------------------\n")
 			return True
 		else:
 			interactCfg.writeErrorMsg("the circuit instance is wrong, please check your code")
@@ -244,7 +244,7 @@ class Circuit:
 					code.write(";")
 					code.write("\n")					
 			print("the code has been stored in " + self.urls.split("..")[1] + "/qasm.txt")
-			print("################ the QASM code has been exported ################\n")
+			print("----------------------- the QASM code has been exported ------------------------\n")
 			return True
 		else:
 			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
@@ -309,7 +309,7 @@ class Circuit:
 			#plt.show()
 			Fig.savefig(self.urls + "/chart.jpg")			
 			print("the circuit has been stored in " + self.urls.split("..")[1]  + "/chart.jpg")
-			print("########### the chart of the circuit has been exported ##########\n")
+			print("------------------ the chart of the circuit has been exported ------------------\n")
 			return True
 		else:
 			interactCfg.writeErrorMsg("the instance is wrong, please check your code")	
@@ -537,8 +537,10 @@ class Circuit:
 		for i in range(0,len(stateList)):
 			msg += "        |" + str(stateList[i]) + ">----" + "%.2f%%"%(probList[i] * 100) + "\n"
 		msg += "execute time: " + str(totalTime) + "s\n"
-		msg += "memory: " + "{:.4f}".format(totalMemory) + "MB\n"
-		msg += "################ the circuit has been executed ##################\n"
+		msg += "memory: " + "{:.4f}".format(totalMemory) + "MB\n\n"
+		msg += " "*27
+		msg += "the circuit has been executed!!\n"
+		msg += "-"*80 + '\n'
 		#write the message to cmd and the file named "result.log"
 		print(msg)
 		try:
@@ -550,7 +552,9 @@ class Circuit:
 		return True
 	def __printPreMsg(self):
 		msg = "\n"
-		msg += "################ begin executing the  circuit ################### \n" 
+		msg += "-"*80 + "\n"
+		msg += " "*27
+		msg += "begin executing the circuit...\n\n"
 		msg += "the experiment: " + self.name
 		#write the message to cmd and the file named "result.log"
 		print(msg)
@@ -571,12 +575,12 @@ class Circuit:
 		writer.writerow(['state', 'times'])
 		data = []
 		for i in range(0,len(stateList)):
-			tuples = (str(stateList[i]),str(timesList[i]))
+			tuples = ('|' + str(stateList[i]) + '>',str(timesList[i]))
 			data.append(tuples)
 		writer.writerows(data)
 		csvFile.close()
 		print("the csv file has been stored in " + self.urls.split("..")[1]  + "/originalData.csv")
-		print("########### the original data has been exported ##########\n")
+		print("--------------------- the original data has been exported ----------------------\n")
 		return True
 
 		
