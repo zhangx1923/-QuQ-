@@ -55,7 +55,9 @@ def handleQubits(gate:list , q:Qubit):
 	basic = 2 ** (totalQubit - position - 1)
 	endResult = []
 	for i in range(0,2 ** totalQubit):
-		tmpResult = [[0],[0],[0],[0]]
+		tmpResult = []
+		for n in range(0,2 ** totalQubit):
+			tmpResult.append([0])
 		amplitude = qs.getAmp()[i]
 		#pass the number i
 		if amplitude == 0.0:
@@ -392,31 +394,24 @@ def M(data):
 				return False
 	return True
 
-
-# #execute the measurement, the types of the input can be Qubit or Qubits
-# def M(data):
-# 	types = type(data)
-# 	result = []
-# 	if types != Qubit and types != Qubits:
-# 		raise TypeError("the type should be Qubit or Qubits")
-# 		return -1
-# 	#the type is a qubit
-# 	if types == Qubit:
-# 		lists = data.decideProb()
-# 		idList = [data.ids]
-# 		result.append(idList)
-# 		result.append(lists)
-# 	#the type is qubits
-# 	else:
-# 		#adjust the order of qubits according to the ids of each qubits
-# 		lists = []
-# 		idList = []
-# 		for item in data.qubitList:
-# 			tmpList = item.decideProb()
-# 			lists.append(tmpList)
-# 			idList.append(int(item.ids))
-# 		if adjustOrder(lists,idList):
-# 			result.append(idList)
-# 			result.append(lists)
-# 	#print(lists)
-# 	return result
+#Toffoli gate, three input and three output
+def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):
+	X(q1)
+	X(q2)
+	H(q3)
+	CNOT(q2,q3)
+	Td(q3)
+	CNOT(q1,q3)
+	T(q3)
+	CNOT(q2,q3)
+	Td(q3)
+	CNOT(q1,q3)
+	Td(q2)
+	T(q3)
+	CNOT(q1,q2)
+	H(q3)
+	Td(q2)
+	CNOT(q1,q2)
+	T(q1)
+	S(q2)
+	return q1.entanglement

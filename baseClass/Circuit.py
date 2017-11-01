@@ -8,6 +8,7 @@ import datetime
 import random
 from Bit import Bit
 from Qubit import *
+from Error import *
 #from Gate import *
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches

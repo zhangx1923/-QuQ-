@@ -57,11 +57,8 @@ if __name__ == "__main__":
 	try:
 		exec(import_string)
 		exec(funName)
-	except ImportError:
-		print("ImportError: Can't import the file: " + import_string)
-		sys.exit(0)
-	except NameError:
-		print("NameError: " + funName + " isn't defined!")
+	except ImportError as ie:
+		print("ImportError: " + str(ie))
 		sys.exit(0)
 
 

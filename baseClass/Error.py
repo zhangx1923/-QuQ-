@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 #the custom exceptions are written in this file
-from Circuit import *
 import sys
 sys.path.append('../tools/')
 from interactCfg import *
 
 #check the environment: whether the current circuit is equal to this instance 
 def checkEnvironment():
+	from Circuit import Circuit
 	circuitNum = len(Circuit.currentIDList)
 	#there only can be one instance and the id of this instance must be equal with self.ids
 	if circuitNum == 1:
@@ -99,6 +99,6 @@ class NotNormal(Exception):
 		else:
 			self.value = msg
 	def __str__(self):
-		result = "Error Type: IDRepeatError\r\n"
+		result = "Error Type: NotNormal\r\n"
 		result += "Error Message: " + self.value
 		return result
