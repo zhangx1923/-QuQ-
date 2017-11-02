@@ -91,7 +91,6 @@ class Qubit(BaseQubit):
 					interactCfg.writeErrorMsg(ve)
 			#print(qs.getAmp())
 			qs.normalize()
-			#print(qs.getAmp())
 			totalQubit = len(qs.qubitList)
 			iTH = []
 			#get the index of the argument qubitList
@@ -117,15 +116,18 @@ class Qubit(BaseQubit):
 				stateList.append(state)
 			for state in stateList:
 				#len(state) = length
-				index = 0
+				indexList = []
 
 				for j in range(0,length):
-					if state[j] == '1':
-						index += 2 ** (totalQubit - iTH[j] - 1)
+					indexList.append(2 ** (totalQubit - iTH[j] - 1))
 				amplitude = 0
-
 				for k in range(0,2**totalQubit):
-					if (k ^ index)  == 0:
+					target = True
+					for index in range(0,len(indexList)):
+						if k & indexList[index] == int(state[index]) * indexList[index]:
+							continue
+						target = False
+					if target:
 						amplitude += (qs.amplitude[k] * qs.amplitude[k].conjugate()).real
 				amplitudeList.append(amplitude)
 			# print(stateList)

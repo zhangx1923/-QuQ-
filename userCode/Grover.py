@@ -33,6 +33,7 @@ def grover():
 		H(qList[i])
 	H(qList[N-1])
 	G(qList)
+	QSprint(qList[0].entanglement)
 	#measure the qubits
 	for q in actualQubit:
 		M(qList[q])
@@ -57,7 +58,7 @@ def G(qList:list):
 	for i in actualQubit:	
 		H(qList[i])
 		X(qList[i])
-	X(qList[len(qList)-2])
+	H(qList[len(qList)-2])
 	tmpList = actualQubit.copy()
 	for j in range(0,len(actualQubit)-3):
 		tmpList.append(auxiliaryQubit[j])
@@ -68,7 +69,7 @@ def G(qList:list):
 		for i in range(2,len(tmpList),2):
 			Toffoli(qList[i-2],qList[i-1],qList[i])
 
-	X(qList[len(qList)-2])
+	H(qList[len(qList)-2])
 	for i in actualQubit:	
 		X(qList[i])
 		H(qList[i])

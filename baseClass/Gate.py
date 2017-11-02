@@ -396,8 +396,6 @@ def M(data):
 
 #Toffoli gate, three input and three output
 def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):
-	X(q1)
-	X(q2)
 	H(q3)
 	CNOT(q2,q3)
 	Td(q3)

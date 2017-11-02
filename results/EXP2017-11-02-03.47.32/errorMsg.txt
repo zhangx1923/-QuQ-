@@ -1,3 +1,0 @@
-Time:2017-11-02 03:47:32.630700
-Error Message:Error Type: NotNormal
-Error Message: the qubit or qubits is not normal, please normalize the measured qubit!

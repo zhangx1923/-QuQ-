@@ -1,3 +1,0 @@
-Time:2017-11-02 03:42:48.338317
-Error Message:Error Type: IDRepeatError
-Error Message: the qubit or qubits is not normal, please normalize the measured qubit!
