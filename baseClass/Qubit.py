@@ -35,7 +35,7 @@ class Qubit(BaseQubit):
 			except IDRepeatError as ir:
 				interactCfg.writeErrorMsg(ir)
 		self.ids = ids
-		self.idList.append(ids)
+		Qubit.idList.append(ids)
 		if self.mode == 'simulator':
 			#has assignment error and gate error
 			error = interactCfg.readCfgER(ids)
@@ -86,9 +86,9 @@ class Qubit(BaseQubit):
 		else:
 			if qubitList == None or len(qubitList) == 0:
 				try:
-					raise ValueError("The argument qubitList has no element, it must has at least one element")
-				except ValueError as ve:
-					interactCfg.writeErrorMsg(ve)
+					raise ValueError()
+				except ValueError:
+					interactCfg.writeErrorMsg("ValueError: The argument qubitList has no element, it must has at least one element")
 			#print(qs.getAmp())
 			qs.normalize()
 			totalQubit = len(qs.qubitList)
@@ -136,12 +136,13 @@ class Qubit(BaseQubit):
 			result[1] = stateList
 		return result
 
-
-	# def __del__(self):
-	# 	try:
-	# 		self.idList.remove(self.ids)
-	# 	except ValueError as ve:
-	# 		interactCfg.writeErrorMsg(ve)
+	def __del__(self):
+		try:
+			Qubit.idList.remove(self.ids)
+			#the qubit is degenerated to Bit
+			
+		except ValueError as ve:
+			interactCfg.writeErrorMsg(ve)
 
 class Qubits(BaseQubit):
 	#the init has two qubits as input, compute the tensor product of the two elements
@@ -193,12 +194,17 @@ class Qubits(BaseQubit):
 
 	#data can be Qubit or Qubits
 	def addNewItem(self,data):
+		if len(self.qubitList) == 0:
+			try:
+				raise ValueError()
+			except ValueError:
+				interactCfg.writeErrorMsg("ValueError: There is no element in this Qubits!")
 		types = type(data)
 		if types != Qubit and types != Qubits:
 			try:
-				raise TypeError("the type should be Qubit or Qubits")
-			except TypeError as te:
-				interactCfg.writeErrorMsg(te)
+				raise TypeError()
+			except TypeError:
+				interactCfg.writeErrorMsg("TypeError: the type should be Qubit or Qubits")
 		if types == Qubit:
 			self.qubitList.append(data)
 			self.number += 1
@@ -213,6 +219,47 @@ class Qubits(BaseQubit):
 		newMatrix = self.mulMatrix(self.getMatrix(),data.getMatrix())
 		self.setMatrix(newMatrix)
 		return 0
+
+	#delete the list of qubit from current instance
+	def deleteItem(self,ql:list):
+		for q in ql:
+			if self.getIndex(q) == -1:
+				#the qubit isn't in this instance
+				try:
+					raise ValueError()
+				except ValueError:
+					interactCfg.writeErrorMsg("ValueError: qubit(q" + str(q.ids) + ") is not in this Qubits!")
+		#qlIn store the qubit which are in this Qubits and haven't been measured
+		qlIn = []
+		for qubit in self.qubitList:
+			if qubit not in ql:
+				qlIn.append(qubit)
+		#change the state of the current Qubits
+		if len(qlIn) == 0:
+			#delete this instance
+			self.number = 0
+			self.qubitList.clear()
+			self.setMatrix([])
+		else:
+			result = q.decideProb(qlIn)
+			state = result[1]
+			prob = result[0]
+			for q in ql:
+				self.number -= 1
+				self.qubitList.remove(q)
+			newMatrix = [[0]] * (2**(len(qlIn)))
+			for s in range(0,len(state)):
+				l = len(state[s])
+				sums = 0
+				for index in range(0,l):
+					number = int(state[s][index]) * (2**(l-index-1))
+					sums += number
+				newMatrix[sums][0] = prob[s]
+			self.setMatrix(newMatrix)
+		#del the qubit instance
+		for q in ql:
+			del q
+
 
 	#adjust the order of qubitList according to the id of each qubit
 	# def __adjustOrder(self):

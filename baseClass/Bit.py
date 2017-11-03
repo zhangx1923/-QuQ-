@@ -1,12 +1,15 @@
 #!/usr/bin/python3
 #the Bit class represent the standard classical bit
-#in python3, the a int occupies 28 bits.
 
 class Bit:
-	def __init__(self,value = 0):
+	def __init__(self,value = 0,ids = None):
 		if value != 0 and value != 1:
 			raise ValueError('Bit must be 0 or 1')
 		self.value = value
+		if ids == None:
+			self.ids
+		else:
+			self.ids = ids
 
 	#overwrite the add operator of bits
 	def __add__(self,other):

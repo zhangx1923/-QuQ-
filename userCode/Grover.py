@@ -32,12 +32,26 @@ def grover():
 	for i in actualQubit:
 		H(qList[i])
 	H(qList[N-1])
-	G(qList)
-	QSprint(qList[0].entanglement)
+	times = executeTimes(totalElement)
+	for i in range(0,times):
+		G(qList)
+	#G(qList)
 	#measure the qubits
 	for q in actualQubit:
 		M(qList[q])
-	c.execute(1024)
+	
+	#M(qList[N-1])
+	c.execute(10240)
+	QSprint(qList[N-1].entanglement)
+#the parameter is the size of the database.
+#and the target is supposed to one element
+def executeTimes(n):
+	theta = math.asin(math.sqrt(1 / n)) / math.pi * 180
+	times = (90 - theta) / (2 * theta)
+	if times > int(times) + 0.5:
+		return int(times) + 1
+	else:
+		return int(times)
 
 def G(qList:list):
 	#oracle--H--phase--H

@@ -10,6 +10,7 @@ from Bit import Bit
 from Qubit import *
 from Error import *
 #from Gate import *
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
@@ -124,19 +125,26 @@ class Circuit:
 			
 			############################draw the gate according to self.qubitExecuteList###################
 			j = 0
+			maxLength = 0
+			for qe in self.qubitExecuteList.keys():
+				maxLength = max(maxLength,len(self.qubitExecuteList[qe]))
 			for ids in self.qubitExecuteList.keys():
+				if maxLength < 20:
+					factor = 1
+				else:
+					factor = maxLength / 20
 				#label the ids
 				label = 'Q' + str(ids)
 				Ax.annotate(label,xy=(0, j*partition), xytext=(-4, j*partition-0.5),size=12,)
 				#draw the gate
 				executeList = self.qubitExecuteList[ids]
-				x_position = 4
+				x_position = 4 / factor
 				for item in executeList:
 					gate = item.split(" ")[0]
 					style = "square"
 					#the gate 'NULL' was stored to the list is to occupy the postion so that we can draw the circuit easily
 					if gate == 'NULL':
-						x_position += 5
+						x_position += 5 / factor
 						continue
 					#adjust the length of the gate string
 					try:
@@ -166,19 +174,19 @@ class Circuit:
 							ann = Ax.annotate("1",
                   				xy=(1, 20), xycoords='data',color=gateColor,
                   				xytext=(x_position, j*partition), textcoords='data',
-                  				size=6, va="center", ha="center",
+                  				size=6/factor, va="center", ha="center",
                   				bbox=dict(boxstyle="circle", fc=gateColor,pad=0.3,ec=gateColor),
                   			)
-							x_position += 5
+							x_position += 5/factor
                   			#don't draw the CX
 							continue
 					ann = Ax.annotate(gateName,
                   		xy=(1, 20), xycoords='data',
                   		xytext=(x_position, j*partition), textcoords='data',color='w',
-                  		size=12, va="center", ha="center",
+                  		size=12/factor, va="center", ha="center",
                   		bbox=dict(boxstyle=style, fc=gateColor,pad=0.3,ec=gateColor),
                   		)
-					x_position += 5
+					x_position += 5/factor
 				j += 1
 			############################the gate has completed########################################
 			#plt.show()
@@ -293,7 +301,7 @@ class Circuit:
 				if y_position < 0.1:
 					yPosition = y_position + 0.01
 				else:
-					yPosition = y_position - 0.05
+					yPosition = y_position - 0.03
 				plt.text(x_position,yPosition,'{:.3f}'.format(y_position),ha='center',va='bottom')
 			# #draw the pir chart
 			# Ax = Fig.add_subplot(122)
@@ -350,6 +358,7 @@ class Circuit:
 					ampList.append(result[0])
 					stateList.append(result[1])
 					idList.append(qubit.ids)
+					del qubit
 					continue
 				#the current qubit is in entanglement
 				#find the other qubit ,which is also in qs.qubitList and self.measureList
@@ -364,6 +373,10 @@ class Circuit:
 						qubitGroup.append(item)
 						idList.append(item.ids)
 				result = qubit.decideProb(qubitGroup)
+				#delete the measured qubit from its entangle state
+				qs.deleteItem(qubitGroup)
+				if len(qs.qubitList) == 0:
+					del qs
 				ampList.append(result[0])
 				stateList.append(result[1])
 
@@ -406,8 +419,9 @@ class Circuit:
 			
 			#get the actual measure results according to the probResult
 			timesList = self.__randomM(executeTimes,probResult)
+			endProbResult = []
 			for p in range(0,len(probResult)):
-				probResult[p] = timesList[p] / executeTimes
+				endProbResult.append(timesList[p] / executeTimes)
 
 			#get the end time of the circuit
 			self.endTime = datetime.datetime.now()
@@ -418,11 +432,11 @@ class Circuit:
 				title += "q"
 				title += str(qid)
 
-			self.__printExecuteMsg(stateResult,probResult) 
+			self.__printExecuteMsg(stateResult,endProbResult) 
 			############################exporting############################
 			self.__exportCircuit()
 			self.__QASM()
-			self.__exportChart(stateResult,probResult,title)
+			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
 			#call the destory function to clean the current instance
 			self.__del__()
@@ -439,6 +453,7 @@ class Circuit:
 			# 	print("Invalid input! Only 'Y' or 'N' is allowed! ")
 		else:
 			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
+
 
 	#split the unit interval into len(probList) parts, and the length of iTH interval is probList[i]
 	#product random number for executeTimes, then count the times of number in each interval 
