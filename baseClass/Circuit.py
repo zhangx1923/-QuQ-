@@ -389,6 +389,8 @@ class Circuit:
 
 				probList.append(result[0])
 				stateList.append(result[1])
+			for qubit in qubitList:
+				print(type(qubit))
 			#use the prbList to compute the end prob
 			#and the state to compute the end state
 			#e.g., prob = [0.5,0.5],state = ['11','00']
