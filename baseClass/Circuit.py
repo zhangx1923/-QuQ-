@@ -76,7 +76,7 @@ class Circuit:
 		self.qubitNum = 0
 		Circuit.currentIDList.append(self.ids)
 		Circuit.instance = self
-		#put all the qubit, which need measurement, in this list
+		#put all the qubit which need measurement in this list
 		self.measureList = []
 		#record the execute mode of the current instance
 		self.mode = interactCfg.readCfgEM()
@@ -358,7 +358,8 @@ class Circuit:
 					probList.append(result[0])
 					stateList.append(result[1])
 					idList.append(qubit.ids)
-					del qubit
+					self.__removeQubit([qubit])
+					qubit = qubit.delete()
 					continue
 				#the current qubit is in entanglement
 				#find the other qubit ,which is also in qs.qubitList and self.measureList
@@ -374,13 +375,15 @@ class Circuit:
 						idList.append(item.ids)
 				result = qubit.decideProb(qubitGroup)
 				#delete the measured qubit from its entangle state
+				self.__removeQubit(qubitGroup)
 				qs.deleteItem(qubitGroup)
-				for ii in qubitGroup:
-					print(ii)
 				#there is no element in qs.qubitList
 				if len(qs.qubitList) == 0:
 					del qs
-				#there is only one element in qs.qubitList and the element is qs ifself
+				#there is only one element in qs.qubitList, then there is no need to keep qs
+				if len(qs.qubitList) == 1:
+					qs.qubitList[0].entanglement = None
+					del qs
 
 				probList.append(result[0])
 				stateList.append(result[1])
@@ -435,7 +438,6 @@ class Circuit:
 			for qid in idList:
 				title += "q"
 				title += str(qid)
-
 			self.__printExecuteMsg(stateResult,endProbResult) 
 			############################exporting############################
 			self.__exportCircuit()
@@ -458,6 +460,16 @@ class Circuit:
 		else:
 			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
 
+	#remove qubitList from this instance; only the qubit has been measured, it can be removed from this instance
+	def __removeQubit(self,ql:list):
+		for q in ql:
+			try:
+				if q.ids in self.qubitExecuteList:
+					self.qubitNum -= 1
+					del self.qubitExecuteList[q.ids]
+					self.measureList.remove(q)
+			except KeyError:
+				interactCfg.writeErrorMsg("KeyError: Q"+ str(q.ids) + " is not in this Circuit instance!")
 
 	#split the unit interval into len(probList) parts, and the length of iTH interval is probList[i]
 	#product random number for executeTimes, then count the times of number in each interval 

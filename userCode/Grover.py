@@ -41,12 +41,13 @@ def grover():
 		M(qList[q])
 	
 	#M(qList[N-1])
-	c.execute(10240)
-	print(type(qList[N-2]))
+	c.execute(1024)
+	print(type(qList[0]))
 	QSprint(qList[N-1].entanglement)
 	QSprint(qList[N-1])
-	print(qList[N-2].entanglement)
-	QSprint(qList[N-2])
+	print(qList[N-2])
+	QSprint(qList[0])
+
 #the parameter is the size of the database.
 #and the target is supposed to one element
 def executeTimes(n):

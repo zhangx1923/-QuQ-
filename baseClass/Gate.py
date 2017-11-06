@@ -174,11 +174,12 @@ def X(q:Qubit):
 	qs = q.entanglement
 	X = [[0,1],[1,0]]
 	noise([q],X)
-	result = matrixCompution(X,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	#the qubit is in entanglement
 	if qs != None:
 		q = handleQubits(X,q)
+	else:
+		result = matrixCompution(X,q.getMatrix()).tolist()
+		q.setMatrix(result)		
 	return q
 
 def Y(q:Qubit):
@@ -188,10 +189,11 @@ def Y(q:Qubit):
 	qs = q.entanglement
 	Y = [[0,-1j],[1j,0]]
 	noise([q],Y)
-	result = matrixCompution(Y,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	if qs != None:
 		q = handleQubits(Y,q)
+	else:
+		result = matrixCompution(Y,q.getMatrix()).tolist()
+		q.setMatrix(result)	
 	return q
 
 def Z(q:Qubit):
@@ -201,10 +203,11 @@ def Z(q:Qubit):
 	qs = q.entanglement
 	Z = [[1,0],[0,-1]]
 	noise([q],Z)
-	result = matrixCompution(Z,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	if qs != None:
 		q = handleQubits(Z,q)
+	else:
+		result = matrixCompution(Z,q.getMatrix()).tolist()
+		q.setMatrix(result)		
 	return q
 
 def I(q:Qubit):
@@ -213,8 +216,11 @@ def I(q:Qubit):
 		return False
 	I = [[1,0],[0,1]]
 	noise([q],I)
-	result = matrixCompution(I,q.getMatrix()).tolist()
-	q.setMatrix(result)
+	if qs != None:
+		q = handleQubits(I,q)
+	else:
+		result = matrixCompution(I,q.getMatrix()).tolist()
+		q.setMatrix(result)	
 	return q
 
 def H(q:Qubit):
@@ -224,11 +230,12 @@ def H(q:Qubit):
 	qs = q.entanglement
 	H = [[1/math.sqrt(2),1/math.sqrt(2)],[1/math.sqrt(2),-1/math.sqrt(2)]]
 	noise([q],H)
-	result = matrixCompution(H,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	#the qubit is in entanglement
 	if qs != None:
 		q = handleQubits(H,q)
+	else:
+		result = matrixCompution(H,q.getMatrix()).tolist()
+		q.setMatrix(result)	
 	return q
 
 def S(q:Qubit):
@@ -238,10 +245,11 @@ def S(q:Qubit):
 	qs = q.entanglement
 	S = [[1,0],[0,1j]]
 	noise([q],S)
-	result = matrixCompution(S,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	if qs != None:
 		q = handleQubits(S,q)
+	else:
+		result = matrixCompution(S,q.getMatrix()).tolist()
+		q.setMatrix(result)	
 	return q
 
 def Sd(q:Qubit):
@@ -251,10 +259,11 @@ def Sd(q:Qubit):
 	qs = q.entanglement
 	Sd = [[1,0],[0,-1j]]
 	noise([q],Sd)
-	result = matrixCompution(Sd,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	if qs != None:
 		q = handleQubits(Sd,q)
+	else:
+		result = matrixCompution(Sd,q.getMatrix()).tolist()
+		q.setMatrix(result)
 	return q
 
 def T(q:Qubit):
@@ -264,10 +273,11 @@ def T(q:Qubit):
 	qs = q.entanglement
 	T = [[1,0],[0,(1+1j)/math.sqrt(2)]]
 	noise([q],T)
-	result = matrixCompution(T,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	if qs != None:
 		q = handleQubits(T,q)
+	else:
+		result = matrixCompution(T,q.getMatrix()).tolist()
+		q.setMatrix(result)
 	return q
 
 def Td(q:Qubit):
@@ -277,10 +287,11 @@ def Td(q:Qubit):
 	qs = q.entanglement
 	Td = [[1,0],[0,(1-1j)/math.sqrt(2)]]
 	noise([q],Td)
-	result = matrixCompution(Td,q.getMatrix()).tolist()
-	q.setMatrix(result)
 	if qs != None:
 		q = handleQubits(Td,q)
+	else:
+		result = matrixCompution(Td,q.getMatrix()).tolist()
+		q.setMatrix(result)		
 	return q
 
 #return a Qubits, which has two entanglement qubit
@@ -350,10 +361,10 @@ def CNOT(q1:Qubit,q2:Qubit):
 		newQSMatrix[lists[0]],newQSMatrix[lists[1]] = newQSMatrix[lists[1]],newQSMatrix[lists[0]]
 	qs.setMatrix(newQSMatrix)
 	#q2 is the target qubit, and the matrix of the qubit should be updated.
-	newQ2matrix = [[0.0],[0.0]]
-	newQ2matrix[0][0] = q1.getAmp()[0] * q2.getAmp()[0] + q1.getAmp()[1] * q2.getAmp()[1]
-	newQ2matrix[1][0] = q1.getAmp()[1] * q2.getAmp()[0] + q1.getAmp()[0] * q2.getAmp()[1]
-	q2.setMatrix(newQ2matrix)
+	# newQ2matrix = [[0.0],[0.0]]
+	# newQ2matrix[0][0] = q1.getAmp()[0] * q2.getAmp()[0] + q1.getAmp()[1] * q2.getAmp()[1]
+	# newQ2matrix[1][0] = q1.getAmp()[1] * q2.getAmp()[0] + q1.getAmp()[0] * q2.getAmp()[1]
+	# q2.setMatrix(newQ2matrix)
 	return qs
 
 #sort the list1 according to the list2

@@ -7,6 +7,7 @@ import math
 #from Circuit import Circuit
 from Error import *
 from Bit import Bit
+import random
 
 #the init state of the qubit must be |0>
 class Qubit(BaseQubit):
@@ -65,6 +66,15 @@ class Qubit(BaseQubit):
 			for p in prob:
 				amp.append(math.sqrt(p))
 			return amp
+	def getMatrix(self):
+		if self.entanglement == None:
+			return self.matrix
+		else:
+			prob = self.decideProb([self])[0]
+			matrix = []
+			for p in prob:
+				matrix.append([math.sqrt(p)])
+			return matrix
 
 	#store the current qubit in the circuit instance
 	def recordQubit(self):
@@ -150,13 +160,23 @@ class Qubit(BaseQubit):
 
 	#degenerate the qubit to Bit, the return value is a bit
 	def delete(self):
-		#self.normalize()
+		self.normalize()
 		ampList = self.getAmp()
 		probList = [(i*i.conjugate()).real for i in ampList]
-		print(probList)
+		if len(probList) != 2:
+			try:
+				raise ValueError
+			except ValueError:
+				interactCfg.writeErrorMsg("ValueError: the sum of the probabilities of |0> and |1> is not 1!")
+		randomNumber = random.uniform(0,1)
+		#the order of the state of the qubit must be 0 and 1
+		if randomNumber - probList[0] > 0:
+			value = 1
+		else:
+			value = 0
 		self.entanglement = None
 		Qubit.idList.remove(self.ids)
-		bit = Bit(self.ids)
+		bit = Bit(value,self.ids)
 		return bit
 
 	# def __del__(self):
@@ -227,6 +247,8 @@ class Qubits(BaseQubit):
 				raise TypeError()
 			except TypeError:
 				interactCfg.writeErrorMsg("TypeError: the type should be Qubit or Qubits")
+		#compute the matrix of the new qubits
+		newMatrix = self.mulMatrix(self.getMatrix(),data.getMatrix())
 		if types == Qubit:
 			self.qubitList.append(data)
 			self.number += 1
@@ -237,8 +259,6 @@ class Qubits(BaseQubit):
 				self.qubitList.append(item)
 				self.number += 1
 				item.entanglement = self
-		#compute the matrix of the new qubits
-		newMatrix = self.mulMatrix(self.getMatrix(),data.getMatrix())
 		self.setMatrix(newMatrix)
 		return 0
 

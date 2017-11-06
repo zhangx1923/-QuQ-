@@ -3,9 +3,9 @@
 
 class Bit:
 	idList = []
-	def __init__(self,value = 0,ids = None):
-		if value != 0 and value != 1:
-			raise ValueError('Bit must be 0 or 1')
+	def __init__(self,value = None,ids = None):
+		if value == None:
+			value = 0
 		self.value = value
 		if ids == None:
 			if len(Bit.idList) == 0:
