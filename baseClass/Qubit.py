@@ -6,6 +6,7 @@ import interactCfg
 import math
 #from Circuit import Circuit
 from Error import *
+from Bit import Bit
 
 #the init state of the qubit must be |0>
 class Qubit(BaseQubit):
@@ -24,12 +25,12 @@ class Qubit(BaseQubit):
 		#show whether the qubit was in entanglement
 		self.entanglement = None
 		if ids == None:
-			if len(self.idList) == 0:
+			if len(Qubit.idList) == 0:
 				ids = 0
 			else:
-				ids = max(self.idList) + 1
+				ids = max(Qubit.idList) + 1
 		#the index of the current qubit, the range is from 0 to n
-		if ids in self.idList:
+		if ids in Qubit.idList:
 			try:
 				raise IDRepeatError()
 			except IDRepeatError as ir:
@@ -51,8 +52,19 @@ class Qubit(BaseQubit):
 				raise ExecuteModeError()
 			except ExecuteModeError as em:
 				interactCfg.writeErrorMsg(em)
-		BaseQubit.setAmp(self)
+		self.setAmp()
 		self.recordQubit()
+
+	#overwrite the function
+	def getAmp(self):
+		if self.entanglement == None:
+			return self.amplitude
+		else:
+			prob = self.decideProb([self])[0]
+			amp = []
+			for p in prob:
+				amp.append(math.sqrt(p))
+			return amp
 
 	#store the current qubit in the circuit instance
 	def recordQubit(self):
@@ -70,7 +82,7 @@ class Qubit(BaseQubit):
 			circuitInstance.qubitNum += 1
 
 	def decideProb(self, qubitList:list = None):
-		#the first dimen is amplitude, the second dimen is state
+		#the first dimen is probability, the second dimen is state
 		result = [[],[]]
 		qs = self.entanglement
 		#once the qubit is in entanglement, the amplitude maybe different
@@ -79,8 +91,8 @@ class Qubit(BaseQubit):
 			self.normalize()
 			#print(self.getAmp())
 			amplitude = self.getAmp()
-			result[0].append(amplitude[0] * amplitude[0].conjugate())
-			result[0].append(amplitude[1] * amplitude[1].conjugate())
+			result[0].append((amplitude[0] * amplitude[0].conjugate()).real)
+			result[0].append((amplitude[1] * amplitude[1].conjugate()).real)
 			result[1].append("0")
 			result[1].append("1")
 		else:
@@ -107,7 +119,7 @@ class Qubit(BaseQubit):
 			iTH.sort()
 			#get the corresponding state
 			stateList = []
-			amplitudeList = []
+			probList = []
 			for i in range(0,caseNum):
 				state = bin(i).split('b')[1]
 				#add zero to beginning of the binary 
@@ -120,7 +132,7 @@ class Qubit(BaseQubit):
 
 				for j in range(0,length):
 					indexList.append(2 ** (totalQubit - iTH[j] - 1))
-				amplitude = 0
+				prob = 0
 				for k in range(0,2**totalQubit):
 					target = True
 					for index in range(0,len(indexList)):
@@ -128,21 +140,31 @@ class Qubit(BaseQubit):
 							continue
 						target = False
 					if target:
-						amplitude += (qs.amplitude[k] * qs.amplitude[k].conjugate()).real
-				amplitudeList.append(amplitude)
+						prob += (qs.amplitude[k] * qs.amplitude[k].conjugate()).real
+				probList.append(prob)
 			# print(stateList)
 			# print(amplitudeList)
-			result[0] = amplitudeList
+			result[0] = probList
 			result[1] = stateList
 		return result
 
-	def __del__(self):
-		try:
-			Qubit.idList.remove(self.ids)
-			#the qubit is degenerated to Bit
-			
-		except ValueError as ve:
-			interactCfg.writeErrorMsg(ve)
+	#degenerate the qubit to Bit, the return value is a bit
+	def delete(self):
+		#self.normalize()
+		ampList = self.getAmp()
+		probList = [(i*i.conjugate()).real for i in ampList]
+		print(probList)
+		self.entanglement = None
+		Qubit.idList.remove(self.ids)
+		bit = Bit(self.ids)
+		return bit
+
+	# def __del__(self):
+	# 	try:
+	# 		Qubit.idList.remove(self.ids)
+	# 		#the qubit is degenerated to Bit
+	# 	except KeyError as ke:
+	# 		interactCfg.writeErrorMsg("KeyError: " + str(ve) + " is not in Qubit instance!")
 
 class Qubits(BaseQubit):
 	#the init has two qubits as input, compute the tensor product of the two elements
@@ -235,33 +257,31 @@ class Qubits(BaseQubit):
 			if qubit not in ql:
 				qlIn.append(qubit)
 		#change the state of the current Qubits
+		newMatrix = []
 		if len(qlIn) == 0:
-			#delete this instance
-			self.number = 0
-			self.qubitList.clear()
-			self.setMatrix([])
+			pass
 		else:
 			result = q.decideProb(qlIn)
 			state = result[1]
 			prob = result[0]
-			for q in ql:
-				self.number -= 1
-				self.qubitList.remove(q)
-			newMatrix = [[0]] * (2**(len(qlIn)))
+			newMatrix = []
+			for i in range(0,2**(len(qlIn))):
+				newMatrix.append([0])
 			for s in range(0,len(state)):
 				l = len(state[s])
 				sums = 0
 				for index in range(0,l):
 					number = int(state[s][index]) * (2**(l-index-1))
 					sums += number
-				newMatrix[sums][0] = prob[s]
-			self.setMatrix(newMatrix)
-		#del the qubit instance
+				newMatrix[sums][0] = math.sqrt(prob[s])
+		#delete the measured qubit from qubits and convert the measured qubit to bit class
+		bitList = []
 		for q in ql:
-			del q
+			bitList.append(q.delete())
+		for i in range(0,len(ql)):
+			self.number -= 1
+			self.qubitList.remove(ql[i])
+			ql[i] = bitList[i]	
+		self.setMatrix(newMatrix)
 
-
-	#adjust the order of qubitList according to the id of each qubit
-	# def __adjustOrder(self):
-	# 	return True
 

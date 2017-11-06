@@ -339,7 +339,7 @@ class Circuit:
 	#execute measurement on the qubits
 	def execute(self,executeTimes:int):
 		if self.checkEnvironment():
-			ampList = []
+			probList = []
 			stateList = []
 			qubitList = self.measureList.copy()
 			hasMeasure = []
@@ -353,9 +353,9 @@ class Circuit:
 				qs = qubit.entanglement
 				#the current qubit is not in entanglement
 				if qs == None:
-					result = qubit.decideProb()
-					#the result is two-dimen, result[0] is the list of amolitude, and result[1] is the corresponding state
-					ampList.append(result[0])
+					result = qubit.decideAmp()
+					#the result is two-dimen, result[0] is the list of probablity, and result[1] is the corresponding state
+					probList.append(result[0])
 					stateList.append(result[1])
 					idList.append(qubit.ids)
 					del qubit
@@ -375,28 +375,32 @@ class Circuit:
 				result = qubit.decideProb(qubitGroup)
 				#delete the measured qubit from its entangle state
 				qs.deleteItem(qubitGroup)
+				for ii in qubitGroup:
+					print(ii)
+				#there is no element in qs.qubitList
 				if len(qs.qubitList) == 0:
 					del qs
-				ampList.append(result[0])
-				stateList.append(result[1])
+				#there is only one element in qs.qubitList and the element is qs ifself
 
-			#use the ampList to compute the end prob
+				probList.append(result[0])
+				stateList.append(result[1])
+			#use the prbList to compute the end prob
 			#and the state to compute the end state
 			#e.g., prob = [0.5,0.5],state = ['11','00']
 			#the state is 0.7|11> + 0.7|00>
-			if len(ampList) == 0 and len(stateList) == 0:
+			if len(probList) == 0 and len(stateList) == 0:
 				interactCfg.writeErrorMsg("there is no qubit need to be measured!")
 				sys.exit()
 			#print(stateList)
-			prob = ampList[0]
+			prob = probList[0]
 			state = stateList[0]
-			caseNum = 2 ** len(ampList)
-			for i in range(1,len(ampList)):
+			caseNum = 2 ** len(probList)
+			for i in range(1,len(probList)):
 				tmpProb = []
 				tmpState = []
 				for j in range(0,len(prob)):
-					for k in range(0,len(ampList[i])):
-						tmpProb.append(prob[j] * ampList[i][k])
+					for k in range(0,len(probList[i])):
+						tmpProb.append(prob[j] * probList[i][k])
 						tmpState.append(state[j] + stateList[i][k])
 				prob = tmpProb
 				state = tmpState
