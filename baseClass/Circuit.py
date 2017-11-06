@@ -346,6 +346,8 @@ class Circuit:
 			number = len(qubitList)
 			#record the order of the qubit
 			idList = []
+			gateNum = self.__countGate()
+			totalQubitNum = self.qubitNum
 			for qubit in qubitList:
 				if qubit in hasMeasure:
 					continue
@@ -353,7 +355,7 @@ class Circuit:
 				qs = qubit.entanglement
 				#the current qubit is not in entanglement
 				if qs == None:
-					result = qubit.decideAmp()
+					result = qubit.decideProb()
 					#the result is two-dimen, result[0] is the list of probablity, and result[1] is the corresponding state
 					probList.append(result[0])
 					stateList.append(result[1])
@@ -413,7 +415,6 @@ class Circuit:
 			stateResult = []
 			orderList = [i for i in range(0,number)]
 			order = self.__orderTheId(idList,orderList)
-
 			for index in range(0,len(prob)):
 				if prob[index] == 0:
 					continue
@@ -438,7 +439,7 @@ class Circuit:
 			for qid in idList:
 				title += "q"
 				title += str(qid)
-			self.__printExecuteMsg(stateResult,endProbResult) 
+			self.__printExecuteMsg(stateResult,endProbResult,gateNum,totalQubitNum) 
 			############################exporting############################
 			self.__exportCircuit()
 			self.__QASM()
@@ -537,8 +538,7 @@ class Circuit:
 		return num
 
 	#print the execute message to cmd 
-	def __printExecuteMsg(self,stateList,probList):
-		gateNum = self.__countGate()
+	def __printExecuteMsg(self,stateList,probList,gateNum,totalQubitNum):
 		#the total execute time, the unit of the time is second
 		totalTime = (self.endTime - self.beginTime).total_seconds()
 		#the total memory, the unit of the memory is MB
@@ -558,7 +558,7 @@ class Circuit:
 				raise ExecuteModeError()
 			except ExecuteModeError as em:
 				interactCfg.writeErrorMsg(em)
-		msg = "total qubits: "+ str(self.qubitNum) + "\n"
+		msg = "total qubits: "+ str(totalQubitNum) + "\n"
 		msg += "the number of the measured qubits: "+ str(gateNum['measure']) + "\n"
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
 		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"

@@ -113,6 +113,7 @@ class Qubit(BaseQubit):
 					interactCfg.writeErrorMsg("ValueError: The argument qubitList has no element, it must has at least one element")
 			#print(qs.getAmp())
 			qs.normalize()
+			amplitude = qs.getAmp()
 			totalQubit = len(qs.qubitList)
 			iTH = []
 			#get the index of the argument qubitList
@@ -150,7 +151,7 @@ class Qubit(BaseQubit):
 							continue
 						target = False
 					if target:
-						prob += (qs.amplitude[k] * qs.amplitude[k].conjugate()).real
+						prob += (amplitude[k] * amplitude[k].conjugate()).real
 				probList.append(prob)
 			# print(stateList)
 			# print(amplitudeList)

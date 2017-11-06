@@ -14,6 +14,7 @@ def grover():
 	for i in range(0,N):
 		q = Qubit()
 		qList.append(q)
+	qq = Qubit()
 	#there are three kinds of qubits:
 	#1.actual qubit:qList[0,1,3,5,...]
 	#2.auxiliary qubit:qList[2,4,6,...]
@@ -39,9 +40,10 @@ def grover():
 	#measure the qubits
 	for q in actualQubit:
 		M(qList[q])
-	
+	M(qq)
 	#M(qList[N-1])
 	c.execute(1024)
+	print(type(qq))
 	print(type(qList[0]))
 	QSprint(qList[N-1].entanglement)
 	QSprint(qList[N-1])
