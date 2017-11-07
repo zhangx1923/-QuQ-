@@ -24,6 +24,28 @@ def get_curl_info():
 #In addition, user can design their own gate
 ################################################################
 
+#check the type of the input, only Qubit is allowed.
+def checkType(ql:list):
+	for q in ql:
+		types = type(q)
+		if types == Bit:
+			try:
+				raise TypeError
+			except TypeError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("Bit " + str(q.ids) + " has been meaured!",funName,line)
+		if types != Qubit:
+			try:
+				raise TypeError
+			except TypeError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("The type of the date should be Qubit!",funName,line)
+
+
 #check the number of rows and cols, the result must be n*1 or m*m, otherwise raise an error
 def checkMatrix(m:list):
 	rows = len(m)
@@ -201,6 +223,7 @@ def noise(qList:list,gate:list):
 			writeErrorMsg(em,funName,line)
 
 def X(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("X",q)
 	if circuit == None:
 		return False
@@ -216,6 +239,7 @@ def X(q:Qubit):
 	return q
 
 def Y(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("Y",q)
 	if circuit == None:
 		return False
@@ -230,6 +254,7 @@ def Y(q:Qubit):
 	return q
 
 def Z(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("Z",q)
 	if circuit == None:
 		return False
@@ -244,6 +269,7 @@ def Z(q:Qubit):
 	return q
 
 def I(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("I",q)
 	if circuit == None:
 		return False
@@ -257,6 +283,7 @@ def I(q:Qubit):
 	return q
 
 def H(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("H",q)
 	if circuit == None:
 		return False
@@ -272,6 +299,7 @@ def H(q:Qubit):
 	return q
 
 def S(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("S",q)
 	if circuit == None:
 		return False
@@ -286,6 +314,7 @@ def S(q:Qubit):
 	return q
 
 def Sd(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("Sd",q)
 	if circuit == None:
 		return False
@@ -300,6 +329,7 @@ def Sd(q:Qubit):
 	return q
 
 def T(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("T",q)
 	if circuit == None:
 		return False
@@ -314,6 +344,7 @@ def T(q:Qubit):
 	return q
 
 def Td(q:Qubit):
+	checkType([q])
 	circuit = recordSingleExecution("Td",q)
 	if circuit == None:
 		return False
@@ -331,6 +362,7 @@ def Td(q:Qubit):
 #the two qubit can be independent qubits, or one of them are a part of engtanlement 
 #the first qubit is the control-qubit, the second qubit is the target-qubit
 def CNOT(q1:Qubit,q2:Qubit):
+	checkType([q1,q2])
 	circuit = recordmultiExecution("CNOT",[q1,q2])
 	if circuit == None:
 		return False
