@@ -539,7 +539,7 @@ class Circuit:
 		num = {'measure':Measure,'single-qubit':Single,'double-qubit':Double,'other':Other}
 		return num
 
-	#print the execute message to cmd 
+	#print the executive message to cmd 
 	def __printExecuteMsg(self,stateList,probList,gateNum,totalQubitNum):
 		#the total execute time, the unit of the time is second
 		totalTime = (self.endTime - self.beginTime).total_seconds()
@@ -564,13 +564,13 @@ class Circuit:
 		msg += "the number of the measured qubits: "+ str(gateNum['measure']) + "\n"
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
 		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"
-		msg += "execute Mode: " + self.mode + "\n"
+		msg += "executive Mode: " + self.mode + "\n"
 		msg += "single-qubit error: " + singleError + "\n"
 		msg += "double-qubit error: " + doubleError + "\n"	
 		msg += "result: " + "\n"
 		for i in range(0,len(stateList)):
 			msg += "        |" + str(stateList[i]) + ">----" + "%.2f%%"%(probList[i] * 100) + "\n"
-		msg += "execute time: " + str(totalTime) + "s\n"
+		msg += "executive time: " + str(totalTime) + "s\n"
 		msg += "memory: " + "{:.4f}".format(totalMemory) + "MB\n\n"
 		msg += " "*27
 		msg += "the circuit has been executed!!\n"

@@ -87,9 +87,9 @@ class Qubit(BaseQubit):
 				interactCfg.writeErrorMsg(ee)
 		if self.ids in circuitInstance.qubitExecuteList:
 			del circuitInstance.qubitExecuteList[self.ids]
-		else:	
-			circuitInstance.qubitExecuteList[self.ids] = []
-			circuitInstance.qubitNum += 1
+			circuitInstance.qubitNum -= 1
+		circuitInstance.qubitExecuteList[self.ids] = []
+		circuitInstance.qubitNum += 1
 
 	def decideProb(self, qubitList:list = None):
 		#the first dimen is probability, the second dimen is state
