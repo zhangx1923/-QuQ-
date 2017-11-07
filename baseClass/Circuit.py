@@ -68,7 +68,10 @@ class Circuit:
 			try:
 				os.makedirs(ResLocation+self.name) 
 			except OSError as oe:
-				interactCfg.writeErrorMsg(oe)		
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(oe,funName,line)		
 		self.urls = ResLocation+self.name
 		#each qubit stands for a individual dimension
 		#see /doc/Class-relation.doc for details
@@ -103,7 +106,10 @@ class Circuit:
 			strs = "there are " + str(len(Circuit.currentIDList)) + " Circuit instance, please check your code"
 			raise EnvironmentError(strs)
 		except EnvironmentError as ee:
-			interactCfg.writeErrorMsg(ee.value)
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg(ee.value,funName,line)
 
 	#draw the circuit according to the qubitExecuteList
 	def __exportCircuit(self):
@@ -151,7 +157,10 @@ class Circuit:
 						gateName = styleDic[gate][0]
 						gateColor = styleDic[gate][1]
 					except KeyError as ke:
-						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist")
+						info = helperFunction.get_curl_info()
+						funName = info[0]
+						line = info[1]
+						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist",funName,line)
 					if gateName == "+":
 						style = "circle"
 						#wheter the current qubit is the control-qubit
@@ -196,7 +205,10 @@ class Circuit:
 			print("-------------------------- the circuit has been drawn --------------------------\n")
 			return True
 		else:
-			interactCfg.writeErrorMsg("the circuit instance is wrong, please check your code")
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg("the circuit instance is wrong, please check your code",funName,line)
 
 	#translate the code of the current circuit to QASM, so that they can be executed on IBMQX
 	def __QASM(self):
@@ -231,7 +243,10 @@ class Circuit:
 					try:
 						gate = qasmDic[gate]
 					except KeyError as ke:
-						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist")
+						info = helperFunction.get_curl_info()
+						funName = info[0]
+						line = info[1]
+						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist",funName,line)
 					#if the gate is CNOT and the current qubit is the target, that is ,
 					#the current qubit is in the 2th postion, then don't draw the gate
 					if gate == "cx" and str(qubits[1]) == str(qubitList[n]):
@@ -242,7 +257,10 @@ class Circuit:
 							try:
 								raise CodeError("Can't measure more than one qubit simultaneously")
 							except CodeError as ce:
-								interactCfg.writeErrorMsg(ce.value)
+								info = helperFunction.get_curl_info()
+								funName = info[0]
+								line = info[1]
+								interactCfg.writeErrorMsg(ce.value,funName,line)
 						code.write("q[" + qubits[0] + "] -> c[" + qubits[0] +"];")
 						code.write("\n")
 						continue
@@ -256,7 +274,10 @@ class Circuit:
 			print("----------------------- the QASM code has been exported ------------------------\n")
 			return True
 		else:
-			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)
 
 	#export the result of the measurement to charts
 	def __exportChart(self,result:list,prob:list,title:str):
@@ -265,7 +286,10 @@ class Circuit:
 			number = len(result)
 			#the dimen of the result must be same with the prob
 			if number != len(prob):
-				interactCfg.writeErrorMsg("the dimension of the measurement result is not equal, please check your code")
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("the dimension of the measurement result is not equal, please check your code",funName,line)
 			###################################drawing the charts###################################
 			#set the canvas
 			Fig = plt.figure('chart',figsize=(12,12))
@@ -321,7 +345,10 @@ class Circuit:
 			print("------------------ the chart of the circuit has been exported ------------------\n")
 			return True
 		else:
-			interactCfg.writeErrorMsg("the instance is wrong, please check your code")	
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)	
 
 	#the aim of the function is to order the idList and get the right state according to the order 
 	#of the ids
@@ -361,7 +388,7 @@ class Circuit:
 					stateList.append(result[1])
 					idList.append(qubit.ids)
 					self.__removeQubit([qubit])
-					qubit = qubit.delete()
+					qubit.delete()
 					continue
 				#the current qubit is in entanglement
 				#find the other qubit ,which is also in qs.qubitList and self.measureList
@@ -389,15 +416,15 @@ class Circuit:
 
 				probList.append(result[0])
 				stateList.append(result[1])
-			for qubit in qubitList:
-				print(type(qubit))
 			#use the prbList to compute the end prob
 			#and the state to compute the end state
 			#e.g., prob = [0.5,0.5],state = ['11','00']
 			#the state is 0.7|11> + 0.7|00>
 			if len(probList) == 0 and len(stateList) == 0:
-				interactCfg.writeErrorMsg("there is no qubit need to be measured!")
-				sys.exit()
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("there is no qubit need to be measured!",funName,line)
 			#print(stateList)
 			prob = probList[0]
 			state = stateList[0]
@@ -418,7 +445,8 @@ class Circuit:
 			orderList = [i for i in range(0,number)]
 			order = self.__orderTheId(idList,orderList)
 			for index in range(0,len(prob)):
-				if prob[index] == 0:
+				#if the prob is in [-0.00001,0.00001], then we regard it as 0
+				if prob[index] > -0.00001 and prob[index] < 0.00001 :
 					continue
 				#set the order of qubits by ASC
 				newStateStr = ""
@@ -450,7 +478,6 @@ class Circuit:
 			#call the destory function to clean the current instance
 			self.__del__()
 			#post the qasm code to ibm API according to the users's input:Y/N
-			print("......")
 			# ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
 			# if ibmBool == 'Y' or ibmBool == 'y':
 			# 	#yes
@@ -460,8 +487,12 @@ class Circuit:
 			# 	print("no")
 			# else:
 			# 	print("Invalid input! Only 'Y' or 'N' is allowed! ")
+			#self.hh(qubitList,bitList)
 		else:
-			interactCfg.writeErrorMsg("the instance is wrong, please check your code")
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)
 
 	#remove qubitList from this instance; only the qubit has been measured, it can be removed from this instance
 	def __removeQubit(self,ql:list):
@@ -472,7 +503,10 @@ class Circuit:
 					del self.qubitExecuteList[q.ids]
 					self.measureList.remove(q)
 			except KeyError:
-				interactCfg.writeErrorMsg("KeyError: Q"+ str(q.ids) + " is not in this Circuit instance!")
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("KeyError: Q"+ str(q.ids) + " is not in this Circuit instance!",funName,line)
 
 	#split the unit interval into len(probList) parts, and the length of iTH interval is probList[i]
 	#product random number for executeTimes, then count the times of number in each interval 
@@ -489,13 +523,19 @@ class Circuit:
 					interval.append([sums,sums+probList[index]])
 				sums += probList[index]
 			except KeyError as ke:
-				interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist!")
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist!",funName,line)
 		#the error rate is lower then 0.001
 		if abs(1 - sums) > 0.001:
 			try:
 				raise NotNormal()
 			except NotNormal as nn:
-				interactCfg.writeErrorMsg(nn)
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(nn,funName,line)
 		#product random number for executeTimes
 		for i in range(0,executeTimes):
 			#judge the number in which interval
@@ -533,8 +573,11 @@ class Circuit:
 		#and the number must be even number
 		if Double & 1 != 0:
 			#the number is odd
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
 			interactCfg.writeErrorMsg("we count the CNOT gate twice, the number of this gate must be even number; \
-				but we get an odd number. Please check your code!")
+				but we get an odd number. Please check your code!",funName,line)
 		Double = Double // 2 
 		num = {'measure':Measure,'single-qubit':Single,'double-qubit':Double,'other':Other}
 		return num
@@ -559,7 +602,10 @@ class Circuit:
 			try:
 				raise ExecuteModeError()
 			except ExecuteModeError as em:
-				interactCfg.writeErrorMsg(em)
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(em,funName,line)
 		msg = "total qubits: "+ str(totalQubitNum) + "\n"
 		msg += "the number of the measured qubits: "+ str(gateNum['measure']) + "\n"
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
@@ -582,7 +628,10 @@ class Circuit:
 			file.write(msg)
 			file.close()
 		except IOError as io:
-			interactCfg.writeErrorMsg(io)
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg(io,funName,line)
 		return True
 	def __printPreMsg(self):
 		msg = "\n"
@@ -597,13 +646,19 @@ class Circuit:
 			file.write(msg)
 			file.close()
 		except IOError as io:
-			interactCfg.writeErrorMsg(io)
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg(io,funName,line)
 		return True			
 	#export the original data of the experiment to the originalData.csv
 	def __exportOriData(self,stateList:list,timesList:list):
 		print("begin exporting original date to csv...")
 		if len(stateList) != len(timesList):
-			interactCfg.writeErrorMsg("there are something wrong with you code!")
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg("there are something wrong with you code!",funName,line)
 		csvFile = open(self.urls + "/originalData.csv","w")
 		writer = csv.writer(csvFile)
 		writer.writerow(['state', 'times'])

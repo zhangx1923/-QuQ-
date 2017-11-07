@@ -8,6 +8,15 @@ import math
 from Error import *
 from Bit import Bit
 import random
+import copy
+
+#get the info about the function name and the line number
+def get_curl_info():
+	try:
+		raise Exception
+	except:
+		f = sys.exc_info()[2].tb_frame.f_back
+	return [f.f_code.co_name, f.f_lineno]
 
 #the init state of the qubit must be |0>
 class Qubit(BaseQubit):
@@ -35,7 +44,10 @@ class Qubit(BaseQubit):
 			try:
 				raise IDRepeatError()
 			except IDRepeatError as ir:
-				interactCfg.writeErrorMsg(ir)
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(ir,funName,line)
 		self.ids = ids
 		Qubit.idList.append(ids)
 		if self.mode == 'simulator':
@@ -52,7 +64,10 @@ class Qubit(BaseQubit):
 			try:
 				raise ExecuteModeError()
 			except ExecuteModeError as em:
-				interactCfg.writeErrorMsg(em)
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(em,funName,line)
 		self.setAmp()
 		self.recordQubit()
 
@@ -84,7 +99,10 @@ class Qubit(BaseQubit):
 			try:
 				raise EnvironmentError()
 			except EnvironmentError as ee:
-				interactCfg.writeErrorMsg(ee)
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(ee,funName,line)
 		if self.ids in circuitInstance.qubitExecuteList:
 			del circuitInstance.qubitExecuteList[self.ids]
 			circuitInstance.qubitNum -= 1
@@ -110,7 +128,10 @@ class Qubit(BaseQubit):
 				try:
 					raise ValueError()
 				except ValueError:
-					interactCfg.writeErrorMsg("ValueError: The argument qubitList has no element, it must has at least one element")
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]
+					interactCfg.writeErrorMsg("ValueError: The argument qubitList has no element, it must has at least one element",funName,line)
 			#print(qs.getAmp())
 			qs.normalize()
 			amplitude = qs.getAmp()
@@ -123,7 +144,10 @@ class Qubit(BaseQubit):
 					try:
 						raise ValueError("Q" + str(qubit.ids) + " is not belong to the qubits")
 					except ValueError as ve:
-						interactCfg.writeErrorMsg(ve)
+						info = get_curl_info()
+						funName = info[0]
+						line = info[1]
+						interactCfg.writeErrorMsg(ve,funName,line)
 				iTH.append(index)	
 			length = len(iTH)
 			caseNum = 2 ** length
@@ -159,8 +183,7 @@ class Qubit(BaseQubit):
 			result[1] = stateList
 		return result
 
-	#degenerate the qubit to Bit, the return value is a bit
-	def delete(self):
+	def degenerate(self):
 		self.normalize()
 		ampList = self.getAmp()
 		probList = [(i*i.conjugate()).real for i in ampList]
@@ -168,17 +191,23 @@ class Qubit(BaseQubit):
 			try:
 				raise ValueError
 			except ValueError:
-				interactCfg.writeErrorMsg("ValueError: the sum of the probabilities of |0> and |1> is not 1!")
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("ValueError: the sum of the probabilities of |0> and |1> is not 1!",funName,line)
 		randomNumber = random.uniform(0,1)
 		#the order of the state of the qubit must be 0 and 1
 		if randomNumber - probList[0] > 0:
 			value = 1
 		else:
 			value = 0
+		bit = Bit(value,self.ids)	
+		return bit
+
+	#delete the qubit
+	def delete(self):
 		self.entanglement = None
 		Qubit.idList.remove(self.ids)
-		bit = Bit(value,self.ids)
-		return bit
 
 	# def __del__(self):
 	# 	try:
@@ -198,7 +227,10 @@ class Qubits(BaseQubit):
 			try:
 				raise ValueError("the qubits must be not in the entanglement")
 			except ValueError as ve:
-				interactCfg.writeErrorMsg(ve)
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(ve,funName,line)
 		#store the number of entanglement qubits
 		self.number = 2
 		self.matrix = []
@@ -215,7 +247,10 @@ class Qubits(BaseQubit):
 		try:
 			item = self.qubitList[index]
 		except IndexError as ie:
-			interactCfg.writeErrorMsg(ie)
+			info = get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg(ie,funName,line)
 		return item
 
 	#input two matrix, then compute the tensor product of the two matrix and return the new matrix
@@ -241,13 +276,19 @@ class Qubits(BaseQubit):
 			try:
 				raise ValueError()
 			except ValueError:
-				interactCfg.writeErrorMsg("ValueError: There is no element in this Qubits!")
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("ValueError: There is no element in this Qubits!",funName,line)
 		types = type(data)
 		if types != Qubit and types != Qubits:
 			try:
 				raise TypeError()
 			except TypeError:
-				interactCfg.writeErrorMsg("TypeError: the type should be Qubit or Qubits")
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg("TypeError: the type should be Qubit or Qubits",funName,line)
 		#compute the matrix of the new qubits
 		newMatrix = self.mulMatrix(self.getMatrix(),data.getMatrix())
 		if types == Qubit:
@@ -271,7 +312,10 @@ class Qubits(BaseQubit):
 				try:
 					raise ValueError()
 				except ValueError:
-					interactCfg.writeErrorMsg("ValueError: qubit(q" + str(q.ids) + ") is not in this Qubits!")
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]
+					interactCfg.writeErrorMsg("ValueError: qubit(q" + str(q.ids) + ") is not in this Qubits!",funName,line)
 		#qlIn store the qubit which are in this Qubits and haven't been measured
 		qlIn = []
 		for qubit in self.qubitList:
@@ -296,13 +340,11 @@ class Qubits(BaseQubit):
 					sums += number
 				newMatrix[sums][0] = math.sqrt(prob[s])
 		#delete the measured qubit from qubits and convert the measured qubit to bit class
-		bitList = []
 		for q in ql:
-			bitList.append(q.delete())
+			q.delete()
 		for i in range(0,len(ql)):
 			self.number -= 1
 			self.qubitList.remove(ql[i])
-			ql[i] = bitList[i]	
 		self.setMatrix(newMatrix)
 
 

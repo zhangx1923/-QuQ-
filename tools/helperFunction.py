@@ -24,7 +24,12 @@ def QSprint(data):
 	types = type(data)
 	if types == Bit:
 		print("{\"Type:" + "Bit;")
-		print("  Value:" + str(data.value) + " \"}")
+		print("  Value:" + str(data.value) + ";")
+		if 'c' in data.ids:
+			print("  Original qubit:" + "None" + ";")
+		else:
+			print("  Original qubit:" + str(data.ids) + ";")
+		print("  ID:" + str(data.ids) +" \"}" )
 
 	if types == Qubit:
 		print("{\"Type:" + "Qubit;")
@@ -64,3 +69,12 @@ def QSprint(data):
 			if j != (length-1):
 				value += "+" 
 		print("  Value:" + value +" \"}")
+
+
+#get the info about the function name and the line number
+def get_curl_info():
+	try:
+		raise Exception
+	except:
+		f = sys.exc_info()[2].tb_frame.f_back
+	return [f.f_code.co_name, f.f_lineno]

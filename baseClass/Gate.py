@@ -8,7 +8,13 @@ from Circuit import Circuit
 from Error import *
 import numpy as np
 import math
-
+#get the info about the function name and the line number
+def get_curl_info():
+	try:
+		raise Exception
+	except:
+		f = sys.exc_info()[2].tb_frame.f_back
+	return [f.f_code.co_name, f.f_lineno]
 ################################################################
 #there are three kinds of gates in QuanSim:
 #1.single Qubit gate(I,X,Y,Z,H,S,Sd,T,Td),Sd is S^\dagger
@@ -30,9 +36,15 @@ def checkMatrix(m:list):
 		if cols != 1 and cols != rows:
 			raise ValueError("the format of the list is wrong")
 	except KeyError as ke:
-		writeErrorMsg(io)
+		info = get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg(ke,funName,line)
 	except ValueError as ve:
-		writeErrorMsg(ve)
+		info = get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg(ve,funName,line)
 	lists = [rows,cols]
 	return lists
 
@@ -41,7 +53,10 @@ def matrixCompution(l1:list,l2:list):
 	rc1 = checkMatrix(l1)
 	rc2 = checkMatrix(l2)
 	if rc1 == None or rc2 == None or rc1[1] != rc2[0]:
-		writeErrorMsg("the matrix is error")
+		info = get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg("the matrix is error",funName,line)
 	gate = np.matrix(l1)
 	qubit = np.matrix(l2)
 	return (gate*qubit)
@@ -71,7 +86,10 @@ def handleQubits(gate:list , q:Qubit):
 				result[0][0] = amplitude * result[0][0]
 				result[1][0] = amplitude * result[1][0]
 			except IndexError as ie:
-				writeErrorMsg(io)	
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg(ie,funName,line)	
 			tmpResult[i][0] = result[0][0]
 			tmpResult[i + basic][0] = result[1][0]
 		#the target qubit is in |1>
@@ -82,7 +100,10 @@ def handleQubits(gate:list , q:Qubit):
 				result[0][0] = amplitude * result[0][0]
 				result[1][0] = amplitude * result[1][0]
 			except IndexError as ie:
-				writeErrorMsg(io)
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg(ie,funName,line)
 			tmpResult[i][0] = result[1][0]
 			tmpResult[i - basic][0] = result[0][0]	
 			#print(newMatrix)
@@ -109,7 +130,10 @@ def recordSingleExecution(gate:str,q:Qubit):
 	try:
 		exeRecord[q.ids].append(strs)
 	except KeyError as ke:
-		print("the current qubit is not stored in the execute list, please check your code")
+		info = get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg("the current qubit is not stored in the execute list, please check your code",funName,line)
 	return circuit
 
 def recordmultiExecution(gate:str,qs:list):
@@ -124,7 +148,10 @@ def recordmultiExecution(gate:str,qs:list):
 			try:
 				length = len(exeRecord[ids])
 			except KeyError as ke:
-				print("the current qubit is not stored in the execute list, please check your code")			
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("the current qubit is not stored in the execute list, please check your code",funName,line)			
 			if maxLength < length:
 				maxLength = length
 			strs += str(ids)
@@ -153,7 +180,10 @@ def noise(qList:list,gate:list):
 		elif qNum == 2:
 			error = interactCfg.readCfgGE("multi")
 		else:
-			interactCfg.writeErrorMsg("There are only single-qubit or double-qubit gate error!")
+			info = get_curl_info()
+			funName = info[0]
+			line = info[1]
+			writeErrorMsg("There are only single-qubit or double-qubit gate error!",funName,line)
 		for i in range(0,len(gate)):
 			for j in range(0,len(gate[0])):
 				if gate[i][j] == 0:
@@ -165,7 +195,10 @@ def noise(qList:list,gate:list):
 		try:
 			raise ExecuteModeError()
 		except ExecuteModeError as em:
-			interactCfg.writeErrorMsg(em)
+			info = get_curl_info()
+			funName = info[0]
+			line = info[1]
+			writeErrorMsg(em,funName,line)
 
 def X(q:Qubit):
 	circuit = recordSingleExecution("X",q)
@@ -385,15 +418,20 @@ def M(data):
 	#the measurement will actually occur when function circuit.execute is called  
 	types  = type(data)
 	if types != Qubit and types != Qubits:
-		raise TypeError("the type should be Qubit or Qubits")
-		return False
+		try:
+			raise TypeError
+		except TypeError:
+			info = get_curl_info()
+			funName = info[0]
+			line = info[1]
+			writeErrorMsg("The type of the date should be Qubit or Qubits",funName,line)
 	#the type is Qubit
 	if types == Qubit:
 		circuit = recordSingleExecution("M",data)
 		#store the measurement qubit in the self.measureList
 		circuit.measureList.append(data)
 		if circuit == None:
-			return False
+			return None
 	#the type is Qubits
 	else:
 		#adjust the order of qubits according to the ids of each qubits
@@ -402,8 +440,8 @@ def M(data):
 			#store the measurement qubit in the self.measureList
 			circuit.measureList.append(item)
 			if circuit == None:
-				return False
-	return True
+				return None
+	return data.degenerate()
 
 #Toffoli gate, three input and three output
 def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):

@@ -7,8 +7,12 @@ sys.path.append('../baseClass/')
 cfgLocation = "../config/"
 
 #write the error message to LOG when error occurs
-def writeErrorMsg(msg):
+def writeErrorMsg(msg,funName,line):
 	print("Unfortunately, the following errors were happened in QuanSim when running the code:")
+	funName = "Function Name: "+ str(funName) + "()"
+	line = "Line: "+ str(line)
+	print(funName)
+	print(line)
 	print(msg)
 	
 	#import the Circuit class
@@ -21,6 +25,8 @@ def writeErrorMsg(msg):
 		time = datetime.datetime.now()
 		errorStr = "Time:" + str(time) + "\r\n"
 		errorStr += "Error Message:"
+		errorStr += funName
+		errorStr += line
 		errorStr += str(msg)
 		file.write(errorStr)
 	sys.exit()

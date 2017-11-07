@@ -1,5 +1,12 @@
 #!/usr/bin/python3
 #the Bit class represent the standard classical bit
+#get the info about the function name and the line number
+def get_curl_info():
+	try:
+		raise Exception
+	except:
+		f = sys.exc_info()[2].tb_frame.f_back
+	return [f.f_code.co_name, f.f_lineno]
 
 class Bit:
 	idList = []
@@ -12,13 +19,18 @@ class Bit:
 				ids = 0
 			else:
 				ids = max(Bit.idList) + 1
+			self.ids = 'c' + str(ids)
+		else:
+			self.ids = 'q' + str(ids)
 		#the index of the current bit, the range is from 0 to n
 		if ids in Bit.idList:
 			try:
 				raise IDRepeatError()
 			except IDRepeatError as ir:
-				interactCfg.writeErrorMsg(ir)
-		self.ids = ids
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(ir,funName,line)
 		Bit.idList.append(ids)		
 
 	#overwrite the add operator of bits

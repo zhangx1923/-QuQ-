@@ -1,6 +1,6 @@
 from header import *
 def grover():
-	totalElement = 4
+	totalElement = 8
 	#the number of the qubits in theory
 	n = 0
 	amount = 2 ** n
@@ -14,7 +14,6 @@ def grover():
 	for i in range(0,N):
 		q = Qubit()
 		qList.append(q)
-	qq = Qubit()
 	#there are three kinds of qubits:
 	#1.actual qubit:qList[0,1,3,5,...]
 	#2.auxiliary qubit:qList[2,4,6,...]
@@ -36,19 +35,10 @@ def grover():
 	times = executeTimes(totalElement)
 	for i in range(0,times):
 		G(qList)
-	#G(qList)
 	#measure the qubits
 	for q in actualQubit:
-		M(qList[q])
-	M(qq)
-	#M(qList[N-1])
+		qList[q] = M(qList[q])
 	c.execute(1024)
-	print(type(qq))
-	print(type(qList[0]))
-	QSprint(qList[N-1].entanglement)
-	QSprint(qList[N-1])
-	print(qList[N-2])
-	QSprint(qList[0])
 
 #the parameter is the size of the database.
 #and the target is supposed to one element

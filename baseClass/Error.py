@@ -3,6 +3,7 @@
 import sys
 sys.path.append('../tools/')
 from interactCfg import *
+from helperFunction import *
 
 #check the environment: whether the current circuit is equal to this instance 
 def checkEnvironment():
@@ -16,8 +17,11 @@ def checkEnvironment():
 		strs = "there are " + str(len(Circuit.currentIDList)) + " Circuit instance, please check your code"
 		raise EnvironmentError(strs)
 	except EnvironmentError as ee:
-		writeErrorMsg(ee)
-
+		info = get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg(ee,funName,line)
+		
 
 class NoCloning(Exception):
 	def __init__(self,msg = None):
