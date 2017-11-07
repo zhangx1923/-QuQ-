@@ -417,6 +417,14 @@ def M(data):
 	#just store the M gate in circuit.qubitExecuteList, 
 	#the measurement will actually occur when function circuit.execute is called  
 	types  = type(data)
+	if types == Bit:
+		try:
+			raise TypeError
+		except TypeError:
+			info = get_curl_info()
+			funName = info[0]
+			line = info[1]
+			writeErrorMsg("Bit " + str(data.ids) + " has been meaured!",funName,line)
 	if types != Qubit and types != Qubits:
 		try:
 			raise TypeError
