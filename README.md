@@ -6,6 +6,7 @@
 
 ## QuanSim
 ### Architecture
+![](https://github.com/zhangxin20121923/QuanSim/raw/master/pic/QuanSim-Framework.png) 
 ### Directory Structure
 
 ## How to Use It
