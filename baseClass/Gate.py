@@ -35,7 +35,7 @@ def checkType(ql:list):
 				info = get_curl_info()
 				funName = info[0]
 				line = info[1]
-				writeErrorMsg("Bit " + str(q.ids) + " has been meaured!",funName,line)
+				writeErrorMsg("Bit " + str(q.ids) + " has been meaured! You can't act any quntum gate on it!",funName,line)
 		if types != Qubit:
 			try:
 				raise TypeError
@@ -150,6 +150,16 @@ def recordSingleExecution(gate:str,q:Qubit):
 	exeRecord = circuit.qubitExecuteList
 	strs = gate + " " + str(ids)
 	try:
+		#a qubit can only be measured once 
+		if gate == 'M':
+			if strs in exeRecord[q.ids]:
+				try:
+					raise ValueError
+				except ValueError:
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]		
+					writeErrorMsg("Qubit: q"+ str(q.ids) + "has been measured! You can't measure one qubit for twice!",funName,line)			
 		exeRecord[q.ids].append(strs)
 	except KeyError as ke:
 		info = get_curl_info()
@@ -444,7 +454,7 @@ def adjustOrder(list1:list,list2:list):
 			tmp -= 1
 	return True
 
-#execute the measurement, the types of the input can be Qubit or Qubits
+#execute the measurement, the types of the input must be Qubit
 def M(data):
 	#just store the M gate in circuit.qubitExecuteList, 
 	#the measurement will actually occur when function circuit.execute is called  
@@ -457,31 +467,21 @@ def M(data):
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("Bit " + str(data.ids) + " has been meaured!",funName,line)
-	if types != Qubit and types != Qubits:
+	if types != Qubit:
 		try:
 			raise TypeError
 		except TypeError:
 			info = get_curl_info()
 			funName = info[0]
 			line = info[1]
-			writeErrorMsg("The type of the date should be Qubit or Qubits",funName,line)
-	#the type is Qubit
-	if types == Qubit:
-		circuit = recordSingleExecution("M",data)
-		#store the measurement qubit in the self.measureList
-		circuit.measureList.append(data)
-		if circuit == None:
-			return None
-	#the type is Qubits
-	else:
-		#adjust the order of qubits according to the ids of each qubits
-		for item in data.qubitList:
-			circuit = recordSingleExecution("M",item)
-			#store the measurement qubit in the self.measureList
-			circuit.measureList.append(item)
-			if circuit == None:
-				return None
-	return data.degenerate()
+			writeErrorMsg("The type of the date must be Qubit!",funName,line)
+	circuit = recordSingleExecution("M",data)
+	#store the measurement qubit in the self.measureList
+	circuit.measureList.append(data)
+	if circuit == None:
+		return None
+	data = data.degenerate()
+	#return data.degenerate()
 
 #Toffoli gate, three input and three output
 def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):

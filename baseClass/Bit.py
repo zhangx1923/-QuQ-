@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 #the Bit class represent the standard classical bit
 #get the info about the function name and the line number
+import sys
 def get_curl_info():
 	try:
 		raise Exception
@@ -24,13 +25,16 @@ class Bit:
 			self.ids = 'q' + str(ids)
 		#the index of the current bit, the range is from 0 to n
 		if ids in Bit.idList:
+			from Error import IDRepeatError
+			sys.path.append('../tools/')
+			from interactCfg import writeErrorMsg
 			try:
-				raise IDRepeatError()
+				raise IDRepeatError("The id of this bit has been used, please choose another id!")
 			except IDRepeatError as ir:
 				info = get_curl_info()
 				funName = info[0]
 				line = info[1]
-				interactCfg.writeErrorMsg(ir,funName,line)
+				writeErrorMsg(ir,funName,line)
 		Bit.idList.append(ids)		
 
 	#overwrite the add operator of bits

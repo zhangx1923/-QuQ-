@@ -1,6 +1,7 @@
 from header import *
+
 def grover():
-	totalElement = 8
+	totalElement = 4
 	#the number of the qubits in theory
 	n = 0
 	amount = 2 ** n
@@ -37,7 +38,10 @@ def grover():
 		G(qList)
 	#measure the qubits
 	for q in actualQubit:
-		qList[q] = M(qList[q])
+		M(qList[q])
+		M(qList[q])
+	for q in qList:
+		print(q)
 	c.execute(1024)
 
 #the parameter is the size of the database.
