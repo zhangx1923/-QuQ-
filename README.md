@@ -1,1 +1,3 @@
 # QuanSim
+## Founder 
+## Contributors
