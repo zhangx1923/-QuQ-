@@ -1,3 +1,4 @@
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
 # QuanSim
 **Founder:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Contributors:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
