@@ -19,7 +19,12 @@ For now, the supported quantum gates include: single-qubit gate (that is, H-gate
 
 ## How to Use It
 ### Start
+You can run QuanSim in the following two ways:<br/>
+* 1.<br/>
+* 2.<br/>
 
 ### About Configuration Files
 
 ### Design Your Own Code
+
+## Development Plan
