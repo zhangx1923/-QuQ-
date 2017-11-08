@@ -10,7 +10,7 @@ QuanSim is a platform of quantum programming. QuanSim是一款量子编程平台
 We should point out that "Decohenerce Simulator", "Quantum Program Control-flow" and "Analysis and Verification of Quantum program" are still under development. And we will release them in the future.
 
 ### Data Type
-There are four kinds of data types in QuanSim. Qubit is the most basic type.
+There are four kinds of data types in QuanSim: Bit, Qubit, Qubits and Circuit. Bit means one classical bit, and the value of this type is either 0 or 1. Qubit is the most basic type in quantum computing. It can be in $|0\rangle$ and $|1\rangle$ simultaneously. Qubits stands for there are more than one Qubit are entangled. Circuit is the basic executive unit, and each experiment corresponds to one Circuit.
 The relation of these data types are shown as follow.
 ![](https://raw.githubusercontent.com/zhangxin20121923/QuanSim/master/pic/QuanSim-datatype.png) 
 
