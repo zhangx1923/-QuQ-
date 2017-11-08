@@ -1,3 +1,3 @@
 # QuanSim
-## Founder 
-## Contributors
+**Founder** 
+**Contributors**
