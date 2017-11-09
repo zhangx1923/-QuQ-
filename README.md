@@ -20,8 +20,8 @@ For now, the supported quantum gates include: single-qubit gate (that is, H-gate
 ## How to Use It
 ### Start
 You can run QuanSim in the following two ways:<br/>
-* Pass the function name you want to run to **main.py**. The format of the function name should be **function()**. <br/>
-* Run **main.py** without parameter, then QuanSim will give you a list of all available functions. Type the id of the function you want to execute.<br/>
+* Pass the function name you want to run to *main.py*. The format of the function name should be *function()*. <br/>
+* Run *main.py* without parameter, then QuanSim will give you a list of all available functions. Type the id of the function you want to execute.<br/>
 
 ### About Configuration Files
 
