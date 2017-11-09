@@ -26,6 +26,8 @@ You can run QuanSim in the following two ways:<br/>
 ### About Configuration Files
 
 ### Design Your Own Code
+Create a new file in *UserCode* folder and name it *\*\*.py*. Please note that you must import *header.py* so that you can get the support of QuanSim.
+the name of the function shouldn't be same with any existing funciton.
 
 ## Development Plan
 We should point out that there are still some features that haven't been developed yet:
