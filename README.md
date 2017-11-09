@@ -23,11 +23,11 @@ You can run QuanSim in the following two ways:<br/>
 * Pass the function name you want to run to *main.py*. The format of the function name should be *function()*. <br/>
 * Run *main.py* without parameter, then QuanSim will give you a list of all available functions. Type the id of the function you want to execute.<br/>
 
-### About Configuration Files
+### Executive Mode
+"simulator" and "theory" are two optional executive modes. The former will bring noise to experiments, but the latter will get the theoretical result of this experiment. And you can switch the mode by modifying *executeMode.cfg*.
 
 ### Design Your Own Code
-Create a new file in *UserCode* folder and name it *\*\*.py*. Please note that you must import *header.py* so that you can get the support of QuanSim.
-the name of the function shouldn't be same with any existing funciton.
+Create a new file in *UserCode* folder and name it *\*\*.py*. Design an entry function in this file. Please note that the name of the entry function shouldn't be same with any existing funciton. Then add the name of the file and the entry function to *function.cfg*.
 
 ## Development Plan
 We should point out that there are still some features that haven't been developed yet:
