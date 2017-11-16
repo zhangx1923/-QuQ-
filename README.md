@@ -3,9 +3,10 @@
 **Contributors:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Institution:** Key laboratory of CPS-DSC, Chongqing University
 ## Introduction
-QuanSim is a platform of quantum programming. QuanSim是一款量子编程平台，它包含量子仿真器，
+QuanSim is a platform of quantum programming， which consists of a quantum simulator and a suit of quantum program language. With the support of QuanSim, we can design and implement quantum algorithms and vertify the performance of algorithms. What's more, we can design quantum programming language on this platform. If you have any questions, please contact with zhang.x\@cqu.edu.cn.
 ## QuanSim
 ### Architecture
+The architecture of QuanSim is shown as follow.
 ![](https://raw.githubusercontent.com/zhangxin20121923/QuanSim/master/pic/QuanSim-FrameWork.png) 
 We should point out that "Decohenerce Simulator", "Quantum Program Control-flow" and "Analysis and Verification of Quantum program" are still under development. And we will release them in the future.
 

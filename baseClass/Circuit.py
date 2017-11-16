@@ -548,8 +548,8 @@ class Circuit:
 
 	#count the numbers of the gate
 	def __countGate(self):
-		#count the measurement number of the circuit
-		Measure = len(self.measureList)
+		#the measured qubits of the circuit
+		Measure = self.measureList.copy()
 		#count the single-qubit and the double-qubit gate number of the circuit
 		Single = 0
 		Double = 0
@@ -579,7 +579,7 @@ class Circuit:
 			interactCfg.writeErrorMsg("we count the CNOT gate twice, the number of this gate must be even number; \
 				but we get an odd number. Please check your code!",funName,line)
 		Double = Double // 2 
-		num = {'measure':Measure,'single-qubit':Single,'double-qubit':Double,'other':Other}
+		num = {'measureQubit':Measure,'single-qubit':Single,'double-qubit':Double,'other':Other}
 		return num
 
 	#print the executive message to cmd 
@@ -593,11 +593,11 @@ class Circuit:
 			doubleError = 'None'
 		elif self.mode == 'simulator':
 			singleError = 0
-			for q in self.measureList:
+			for q in gateNum['measureQubit']:
 				error = interactCfg.readCfgGE('single',q.ids)
 				singleError += error
-			singleError = "%.2f%%"%(singleError / len(self.measureList) * 100)
-			doubleError = "%.2f%%"%(interactCfg.readCfgGE('multi') * 100)
+			singleError = "%.4f%%"%(singleError / float(len(gateNum['measureQubit'])) * 100)
+			doubleError = "%.4f%%"%(interactCfg.readCfgGE('multi') * 100)
 		else:
 			try:
 				raise ExecuteModeError()
@@ -607,7 +607,7 @@ class Circuit:
 				line = info[1]
 				interactCfg.writeErrorMsg(em,funName,line)
 		msg = "total qubits: "+ str(totalQubitNum) + "\n"
-		msg += "the number of the measured qubits: "+ str(gateNum['measure']) + "\n"
+		msg += "the number of the measured qubits: "+ str(len(gateNum['measure'])) + "\n"
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
 		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"
 		msg += "executive Mode: " + self.mode + "\n"
