@@ -112,7 +112,7 @@ class Circuit:
 			interactCfg.writeErrorMsg(ee.value,funName,line)
 
 	#draw the circuit according to the qubitExecuteList
-	def __exportCircuit(self):
+	def __exportCircuit(self,er):
 		if self.checkEnvironment():
 			print("begin drawing the circuit...")
 			#set the canvas
@@ -121,9 +121,10 @@ class Circuit:
 			plt.axis('off')
 			#devide the canvas into 1row 1col, and our pic will be draw on the first place(from up to down, from left to right)
 			Ax = Fig.add_subplot(111)
+			qubitNum = len(er.keys())
 			############################draw the line according to self.qubitNum###########################
-			partition = 100 // self.qubitNum
-			for i in range(0,self.qubitNum):
+			partition = 100 // qubitNum
+			for i in range(0,qubitNum):
 				X = range(0,100)
 				Y = [i*partition] * 100
 				Ax.plot(X,Y,'#000000')
@@ -132,9 +133,9 @@ class Circuit:
 			############################draw the gate according to self.qubitExecuteList###################
 			j = 0
 			maxLength = 0
-			for qe in self.qubitExecuteList.keys():
-				maxLength = max(maxLength,len(self.qubitExecuteList[qe]))
-			for ids in self.qubitExecuteList.keys():
+			for qe in er.keys():
+				maxLength = max(maxLength,len(er[qe]))
+			for ids in er.keys():
 				if maxLength < 20:
 					factor = 1
 				else:
@@ -143,7 +144,7 @@ class Circuit:
 				label = 'Q' + str(ids)
 				Ax.annotate(label,xy=(0, j*partition), xytext=(-4, j*partition-0.5),size=12,)
 				#draw the gate
-				executeList = self.qubitExecuteList[ids]
+				executeList = er[ids]
 				x_position = 4 / factor
 				for item in executeList:
 					gate = item.split(" ")[0]
@@ -168,7 +169,7 @@ class Circuit:
 						controlQubit = item.split(" ")[1].split(",")[0]
 						indexOfTarget = 0
 						#get the index of the target qubit
-						for tmp in self.qubitExecuteList.keys():
+						for tmp in er.keys():
 							if str(tmp) != targetQubit:
 								indexOfTarget += 1
 							else:
@@ -211,26 +212,27 @@ class Circuit:
 			interactCfg.writeErrorMsg("the circuit instance is wrong, please check your code",funName,line)
 
 	#translate the code of the current circuit to QASM, so that they can be executed on IBMQX
-	def __QASM(self):
+	def __QASM(self,er):
 		print("begin export the QASM code of the circuit...")
 		if self.checkEnvironment():
+			qubitNum = len(er.keys())
 			code = open(self.urls+"/qasm.txt","w")
-			codeHeader = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + str(self.qubitNum) + '];creg c[' + str(self.qubitNum) + '];'
+			codeHeader = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + str(qubitNum) + '];creg c[' + str(self.qubitNum) + '];'
 			code.write(codeHeader)
 			code.write("\n")
 			#get the ids of the qubit
 			qubitList = []
-			for ids in self.qubitExecuteList.keys():
+			for ids in er.keys():
 				qubitList.append(ids)
 			#get the max length of the execute path
 			maxGate = 0
-			for i in range(0,self.qubitNum):
-				if maxGate < len(self.qubitExecuteList[qubitList[i]]):
-					maxGate = len(self.qubitExecuteList[qubitList[i]])
+			for i in range(0,qubitNum):
+				if maxGate < len(er[qubitList[i]]):
+					maxGate = len(er[qubitList[i]])
 			#draw the circuit 
 			for m in range(0,maxGate):
-				for n in range(0,self.qubitNum):
-					content = self.qubitExecuteList[qubitList[n]]
+				for n in range(0,qubitNum):
+					content = er[qubitList[n]]
 					length = len(content)
 					#if there is no element to be draw, skip the loop
 					if m > length-1:
@@ -375,6 +377,7 @@ class Circuit:
 			idList = []
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
+			executeRecord = self.qubitExecuteList.copy()
 			for qubit in qubitList:
 				if qubit in hasMeasure:
 					continue
@@ -471,8 +474,8 @@ class Circuit:
 				title += str(qid)
 			self.__printExecuteMsg(stateResult,endProbResult,gateNum,totalQubitNum) 
 			############################exporting############################
-			self.__exportCircuit()
-			self.__QASM()
+			self.__exportCircuit(executeRecord)
+			self.__QASM(executeRecord)
 			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
 			#call the destory function to clean the current instance
@@ -607,7 +610,7 @@ class Circuit:
 				line = info[1]
 				interactCfg.writeErrorMsg(em,funName,line)
 		msg = "total qubits: "+ str(totalQubitNum) + "\n"
-		msg += "the number of the measured qubits: "+ str(len(gateNum['measure'])) + "\n"
+		msg += "the number of the measured qubits: "+ str(len(gateNum['measureQubit'])) + "\n"
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
 		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"
 		msg += "executive Mode: " + self.mode + "\n"

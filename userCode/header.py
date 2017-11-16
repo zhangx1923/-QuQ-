@@ -10,4 +10,4 @@ from Qubit import *
 from helperFunction import *
 from Circuit import Circuit
 from Gate import *
-from IBMQX import *
+#from IBMQX import *
