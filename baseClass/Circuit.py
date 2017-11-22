@@ -379,6 +379,7 @@ class Circuit:
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
 			executeRecord = self.qubitExecuteList.copy()
+			print("QuanSim is computing the result, please wait for a while...")
 			#execute compution of the circuit
 			if self.gateCompute(executeRecord):
 				pass
