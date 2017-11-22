@@ -39,8 +39,6 @@ def grover():
 	#measure the qubits
 	for q in actualQubit:
 		M(qList[q])
-	for q in qList:
-		print(q)
 	c.execute(1024)
 
 #the parameter is the size of the database.

@@ -378,6 +378,15 @@ class Circuit:
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
 			executeRecord = self.qubitExecuteList.copy()
+			#execute compution of the circuit
+			if self.gateCompute(executeRecord):
+				pass
+			else:
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]				
+				interactCfg.writeErrorMsg("There is something wrong when act the gates on qubits!",funName,line)
+			#execute the measurement of the qubits
 			for qubit in qubitList:
 				if qubit in hasMeasure:
 					continue
@@ -496,6 +505,11 @@ class Circuit:
 			funName = info[0]
 			line = info[1]
 			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)
+
+	#Perform calculations of gate
+	def gateCompute(self,executeRecord:dict):
+		print(executeRecord)
+		return True
 
 	#remove qubitList from this instance; only the qubit has been measured, it can be removed from this instance
 	def __removeQubit(self,ql:list):
