@@ -16,6 +16,18 @@ import matplotlib.patches as patches
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 import csv
 
+single_gateCompute = {
+	"I":"Gate.Ic(q)",
+	"X":"Gate.Xc(q)",
+	"Y":"Gate.Yc(q)",
+	"Z":"Gate.Zc(q)",
+	"H":"Gate.Hc(q)",
+	"S":"Gate.Sc(q)",
+	"T":"Gate.Tc(q)",
+	"Td":"Gate.Tdc(q)",
+	"Sd":"Gate.Sdc(q)",
+}
+
 styleDic = {
 	"I":[" I ","C5"],
 	"X":["X","C1"],
@@ -135,16 +147,16 @@ class Circuit:
 			maxLength = 0
 			for qe in er.keys():
 				maxLength = max(maxLength,len(er[qe]))
-			for ids in er.keys():
+			for q in er.keys():
 				if maxLength < 20:
 					factor = 1
 				else:
 					factor = maxLength / 20
 				#label the ids
-				label = 'Q' + str(ids)
+				label = 'Q' + str(q.ids)
 				Ax.annotate(label,xy=(0, j*partition), xytext=(-4, j*partition-0.5),size=12,)
 				#draw the gate
-				executeList = er[ids]
+				executeList = er[q]
 				x_position = 4 / factor
 				for item in executeList:
 					gate = item.split(" ")[0]
@@ -170,12 +182,12 @@ class Circuit:
 						indexOfTarget = 0
 						#get the index of the target qubit
 						for tmp in er.keys():
-							if str(tmp) != targetQubit:
+							if str(tmp.ids) != targetQubit:
 								indexOfTarget += 1
 							else:
 								break
 						#draw a red circle in the control qubit
-						if str(ids) == controlQubit:
+						if str(q.ids) == controlQubit:
 							smaller = min(indexOfTarget,j)
 							bigger = max(indexOfTarget,j)
 							x1 = [x_position] * (bigger * partition - smaller * partition)
@@ -222,8 +234,8 @@ class Circuit:
 			code.write("\n")
 			#get the ids of the qubit
 			qubitList = []
-			for ids in er.keys():
-				qubitList.append(ids)
+			for q in er.keys():
+				qubitList.append(q)
 			#get the max length of the execute path
 			maxGate = 0
 			for i in range(0,qubitNum):
@@ -251,7 +263,7 @@ class Circuit:
 						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist",funName,line)
 					#if the gate is CNOT and the current qubit is the target, that is ,
 					#the current qubit is in the 2th postion, then don't draw the gate
-					if gate == "cx" and str(qubits[1]) == str(qubitList[n]):
+					if gate == "cx" and str(qubits[1]) == str(qubitList[n].ids):
 						continue
 					code.write(gate + " ")
 					if gate == "measure":
@@ -329,17 +341,6 @@ class Circuit:
 				else:
 					yPosition = y_position - 0.03
 				plt.text(x_position,yPosition,'{:.3f}'.format(y_position),ha='center',va='bottom')
-			# #draw the pir chart
-			# Ax = Fig.add_subplot(122)
-			# Ax.set_title(title + ':pie chart')
-			# labels = ['state:{}\n'.format(r) for r in result]
-			# #draw the pie-chart
-			# colors = ['#7199cf',"#EEC900",'#4fc4aa']
-			# #avoid the last element has the same color with the first element
-			# if number % len(colors) == 1:
-			# 	colors.append("#A3A3A3")
-			# Ax.pie(prob, labels=labels, colors=colors)
-
 			#save the picture
 			#plt.show()
 			Fig.savefig(self.urls + "/chart.jpg")			
@@ -508,16 +509,55 @@ class Circuit:
 
 	#Perform calculations of gate
 	def gateCompute(self,executeRecord:dict):
-		print(executeRecord)
+		import Gate 
+		qubitList = []
+		maxL = 0
+		for k in executeRecord.keys():
+			qubitList.append(k)
+			maxL = max(len(executeRecord[k]),maxL)
+		for i in range(0,maxL):
+			for q in qubitList:
+				lens = len(executeRecord[q])
+				if i >= lens-1:
+					continue
+				gate = executeRecord[q][i].split(' ')[0]
+				if gate == "M" or gate == "NULL":
+					continue
+				if gate == "CNOT":
+					target = executeRecord[q][i].split(' ')[1].split(',')[1]
+					control = executeRecord[q][i].split(' ')[1].split(',')[0]
+					if str(q.ids) == target:
+						continue
+					qt = None
+					for tmp in qubitList:
+						if str(tmp.ids) == target:
+							qt = tmp
+							break
+					if qt != None:
+						Gate.CNOTc(q,qt)
+						continue
+					else:
+						info = helperFunction.get_curl_info()
+						funName = info[0]
+						line = info[1]
+						interactCfg.writeErrorMsg("The target-qubit of the CNOT is not belong to this Qubit!",funName,line)						
+				try:
+					e = single_gateCompute[gate]
+				except KeyError:
+					info = helperFunction.get_curl_info()
+					funName = info[0]
+					line = info[1]
+					interactCfg.writeErrorMsg("Key '"+gate+"' is not in Dict:single_gateCompute!",funName,line)
+				exec(e)
 		return True
 
 	#remove qubitList from this instance; only the qubit has been measured, it can be removed from this instance
 	def __removeQubit(self,ql:list):
 		for q in ql:
 			try:
-				if q.ids in self.qubitExecuteList:
+				if q in self.qubitExecuteList:
 					self.qubitNum -= 1
-					del self.qubitExecuteList[q.ids]
+					del self.qubitExecuteList[q]
 					self.measureList.remove(q)
 			except KeyError:
 				info = helperFunction.get_curl_info()

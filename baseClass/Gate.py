@@ -152,7 +152,7 @@ def recordSingleExecution(gate:str,q:Qubit):
 	try:
 		#a qubit can only be measured once 
 		if gate == 'M':
-			if strs in exeRecord[q.ids]:
+			if strs in exeRecord[q]:
 				try:
 					raise ValueError
 				except ValueError:
@@ -160,7 +160,7 @@ def recordSingleExecution(gate:str,q:Qubit):
 					funName = info[0]
 					line = info[1]		
 					writeErrorMsg("Qubit: q"+ str(q.ids) + "has been measured! You can't measure one qubit for twice!",funName,line)			
-		exeRecord[q.ids].append(strs)
+		exeRecord[q].append(strs)
 	except KeyError as ke:
 		info = get_curl_info()
 		funName = info[0]
@@ -178,7 +178,7 @@ def recordmultiExecution(gate:str,qs:list):
 		for i in range(0,len(qs)):
 			ids = qs[i].ids
 			try:
-				length = len(exeRecord[ids])
+				length = len(exeRecord[qs[i]])
 			except KeyError as ke:
 				info = get_curl_info()
 				funName = info[0]
@@ -192,10 +192,10 @@ def recordmultiExecution(gate:str,qs:list):
 		#add the multi gate string to the execution of each qubit; 
 		#and add NULL to the shorter execution to occupy the position so that we can draw the circuit easily
 		for item in qs:
-			while len(exeRecord[item.ids]) < maxLength:
+			while len(exeRecord[item]) < maxLength:
 				tmpStr = "NULL " + str(item.ids)
-				exeRecord[item.ids].append(tmpStr)
-			exeRecord[item.ids].append(strs)
+				exeRecord[item].append(tmpStr)
+			exeRecord[item].append(strs)
 	return circuit
 
 #add noise to the gate; the noise value is read from errorRate.cfg
@@ -237,6 +237,8 @@ def X(q:Qubit):
 	circuit = recordSingleExecution("X",q)
 	if circuit == None:
 		return False
+	return True
+def Xc(q:Qubit):
 	qs = q.entanglement
 	X = [[0,1],[1,0]]
 	noise([q],X)
@@ -253,6 +255,8 @@ def Y(q:Qubit):
 	circuit = recordSingleExecution("Y",q)
 	if circuit == None:
 		return False
+	return True
+def Yc(q:Qubit):
 	qs = q.entanglement
 	Y = [[0,-1j],[1j,0]]
 	noise([q],Y)
@@ -268,6 +272,8 @@ def Z(q:Qubit):
 	circuit = recordSingleExecution("Z",q)
 	if circuit == None:
 		return False
+	return True
+def Zc(q:Qubit):
 	qs = q.entanglement
 	Z = [[1,0],[0,-1]]
 	noise([q],Z)
@@ -283,6 +289,9 @@ def I(q:Qubit):
 	circuit = recordSingleExecution("I",q)
 	if circuit == None:
 		return False
+	return True
+def Ic(q:Qubit):
+	qs = q.entanglement
 	I = [[1,0],[0,1]]
 	noise([q],I)
 	if qs != None:
@@ -297,6 +306,8 @@ def H(q:Qubit):
 	circuit = recordSingleExecution("H",q)
 	if circuit == None:
 		return False
+	return True
+def Hc(q:Qubit):
 	qs = q.entanglement
 	H = [[1/math.sqrt(2),1/math.sqrt(2)],[1/math.sqrt(2),-1/math.sqrt(2)]]
 	noise([q],H)
@@ -313,6 +324,8 @@ def S(q:Qubit):
 	circuit = recordSingleExecution("S",q)
 	if circuit == None:
 		return False
+	return True
+def Sc(q:Qubit):
 	qs = q.entanglement
 	S = [[1,0],[0,1j]]
 	noise([q],S)
@@ -328,6 +341,8 @@ def Sd(q:Qubit):
 	circuit = recordSingleExecution("Sd",q)
 	if circuit == None:
 		return False
+	return True
+def Sdc(q:Qubit):
 	qs = q.entanglement
 	Sd = [[1,0],[0,-1j]]
 	noise([q],Sd)
@@ -343,6 +358,8 @@ def T(q:Qubit):
 	circuit = recordSingleExecution("T",q)
 	if circuit == None:
 		return False
+	return True
+def Tc(q:Qubit):
 	qs = q.entanglement
 	T = [[1,0],[0,(1+1j)/math.sqrt(2)]]
 	noise([q],T)
@@ -358,6 +375,8 @@ def Td(q:Qubit):
 	circuit = recordSingleExecution("Td",q)
 	if circuit == None:
 		return False
+	return True
+def Tdc(q:Qubit):
 	qs = q.entanglement
 	Td = [[1,0],[0,(1-1j)/math.sqrt(2)]]
 	noise([q],Td)
@@ -376,6 +395,8 @@ def CNOT(q1:Qubit,q2:Qubit):
 	circuit = recordmultiExecution("CNOT",[q1,q2])
 	if circuit == None:
 		return False
+	return True
+def CNOTc(q1:Qubit,q2:Qubit):
 	CNOT = [[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,1,0]]
 	noise([q1,q2],CNOT)
 	q1Entangle = q1.entanglement
@@ -435,11 +456,6 @@ def CNOT(q1:Qubit,q2:Qubit):
 	for lists in swapList:
 		newQSMatrix[lists[0]],newQSMatrix[lists[1]] = newQSMatrix[lists[1]],newQSMatrix[lists[0]]
 	qs.setMatrix(newQSMatrix)
-	#q2 is the target qubit, and the matrix of the qubit should be updated.
-	# newQ2matrix = [[0.0],[0.0]]
-	# newQ2matrix[0][0] = q1.getAmp()[0] * q2.getAmp()[0] + q1.getAmp()[1] * q2.getAmp()[1]
-	# newQ2matrix[1][0] = q1.getAmp()[1] * q2.getAmp()[0] + q1.getAmp()[0] * q2.getAmp()[1]
-	# q2.setMatrix(newQ2matrix)
 	return qs
 
 #sort the list1 according to the list2
@@ -455,32 +471,16 @@ def adjustOrder(list1:list,list2:list):
 	return True
 
 #execute the measurement, the types of the input must be Qubit
-def M(data):
+def M(q:Qubit):
 	#just store the M gate in circuit.qubitExecuteList, 
 	#the measurement will actually occur when function circuit.execute is called  
-	types  = type(data)
-	if types == Bit:
-		try:
-			raise TypeError
-		except TypeError:
-			info = get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("Bit " + str(data.ids) + " has been meaured!",funName,line)
-	if types != Qubit:
-		try:
-			raise TypeError
-		except TypeError:
-			info = get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("The type of the date must be Qubit!",funName,line)
-	circuit = recordSingleExecution("M",data)
+	checkType([q])
+	circuit = recordSingleExecution("M",q)
 	#store the measurement qubit in the self.measureList
-	circuit.measureList.append(data)
+	circuit.measureList.append(q)
 	if circuit == None:
 		return None
-	data = data.degenerate()
+	return q.degenerate()
 	#return data.degenerate()
 
 #Toffoli gate, three input and three output
@@ -501,4 +501,4 @@ def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):
 	CNOT(q1,q2)
 	T(q1)
 	S(q2)
-	return q1.entanglement
+	return True

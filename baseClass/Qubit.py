@@ -103,10 +103,10 @@ class Qubit(BaseQubit):
 				funName = info[0]
 				line = info[1]
 				interactCfg.writeErrorMsg(ee,funName,line)
-		if self.ids in circuitInstance.qubitExecuteList:
-			del circuitInstance.qubitExecuteList[self.ids]
+		if self in circuitInstance.qubitExecuteList:
+			del circuitInstance.qubitExecuteList[self]
 			circuitInstance.qubitNum -= 1
-		circuitInstance.qubitExecuteList[self.ids] = []
+		circuitInstance.qubitExecuteList[self] = []
 		circuitInstance.qubitNum += 1
 
 	def decideProb(self, qubitList:list = None):
