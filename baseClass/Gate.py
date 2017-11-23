@@ -150,22 +150,21 @@ def recordSingleExecution(gate:str,q:Qubit):
 	exeRecord = circuit.qubitExecuteList
 	strs = gate + " " + str(ids)
 	try:
-		#a qubit can only be measured once 
-		if gate == 'M':
-			if strs in exeRecord[q]:
-				try:
-					raise ValueError
-				except ValueError:
-					info = get_curl_info()
-					funName = info[0]
-					line = info[1]		
-					writeErrorMsg("Qubit: q"+ str(q.ids) + "has been measured! You can't measure one qubit for twice!",funName,line)			
+		#a qubit can only be measured once, and once the qubit was measured, you can't act any gate on it.
+		if "M "+str(ids) in exeRecord[q] or "qif "+str(ids) in exeRecord[q]:
+			try:
+				raise ValueError
+			except ValueError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]		
+				writeErrorMsg("Qubit: q"+ str(q.ids) + " has been measured! You can't act any gate on it!",funName,line)			
 		exeRecord[q].append(strs)
 	except KeyError as ke:
 		info = get_curl_info()
 		funName = info[0]
 		line = info[1]
-		writeErrorMsg("the current qubit is not stored in the execute list, please check your code",funName,line)
+		writeErrorMsg("the current qubit is not stored in the execute list, please check your code!",funName,line)
 	return circuit
 
 def recordmultiExecution(gate:str,qs:list):
@@ -237,8 +236,6 @@ def X(q:Qubit):
 	circuit = recordSingleExecution("X",q)
 	if circuit == None:
 		return False
-	return True
-def Xc(q:Qubit):
 	qs = q.entanglement
 	X = [[0,1],[1,0]]
 	noise([q],X)
@@ -255,8 +252,6 @@ def Y(q:Qubit):
 	circuit = recordSingleExecution("Y",q)
 	if circuit == None:
 		return False
-	return True
-def Yc(q:Qubit):
 	qs = q.entanglement
 	Y = [[0,-1j],[1j,0]]
 	noise([q],Y)
@@ -272,8 +267,6 @@ def Z(q:Qubit):
 	circuit = recordSingleExecution("Z",q)
 	if circuit == None:
 		return False
-	return True
-def Zc(q:Qubit):
 	qs = q.entanglement
 	Z = [[1,0],[0,-1]]
 	noise([q],Z)
@@ -289,8 +282,6 @@ def I(q:Qubit):
 	circuit = recordSingleExecution("I",q)
 	if circuit == None:
 		return False
-	return True
-def Ic(q:Qubit):
 	qs = q.entanglement
 	I = [[1,0],[0,1]]
 	noise([q],I)
@@ -306,8 +297,6 @@ def H(q:Qubit):
 	circuit = recordSingleExecution("H",q)
 	if circuit == None:
 		return False
-	return True
-def Hc(q:Qubit):
 	qs = q.entanglement
 	H = [[1/math.sqrt(2),1/math.sqrt(2)],[1/math.sqrt(2),-1/math.sqrt(2)]]
 	noise([q],H)
@@ -324,8 +313,6 @@ def S(q:Qubit):
 	circuit = recordSingleExecution("S",q)
 	if circuit == None:
 		return False
-	return True
-def Sc(q:Qubit):
 	qs = q.entanglement
 	S = [[1,0],[0,1j]]
 	noise([q],S)
@@ -341,8 +328,6 @@ def Sd(q:Qubit):
 	circuit = recordSingleExecution("Sd",q)
 	if circuit == None:
 		return False
-	return True
-def Sdc(q:Qubit):
 	qs = q.entanglement
 	Sd = [[1,0],[0,-1j]]
 	noise([q],Sd)
@@ -358,8 +343,6 @@ def T(q:Qubit):
 	circuit = recordSingleExecution("T",q)
 	if circuit == None:
 		return False
-	return True
-def Tc(q:Qubit):
 	qs = q.entanglement
 	T = [[1,0],[0,(1+1j)/math.sqrt(2)]]
 	noise([q],T)
@@ -375,8 +358,6 @@ def Td(q:Qubit):
 	circuit = recordSingleExecution("Td",q)
 	if circuit == None:
 		return False
-	return True
-def Tdc(q:Qubit):
 	qs = q.entanglement
 	Td = [[1,0],[0,(1-1j)/math.sqrt(2)]]
 	noise([q],Td)
@@ -395,8 +376,6 @@ def CNOT(q1:Qubit,q2:Qubit):
 	circuit = recordmultiExecution("CNOT",[q1,q2])
 	if circuit == None:
 		return False
-	return True
-def CNOTc(q1:Qubit,q2:Qubit):
 	CNOT = [[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,1,0]]
 	noise([q1,q2],CNOT)
 	q1Entangle = q1.entanglement
@@ -502,3 +481,12 @@ def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):
 	T(q1)
 	S(q2)
 	return True
+
+#the follow is the control-flow
+def qif(q:Qubit):
+	checkType([q])
+	circuit = recordSingleExecution("qif",q)
+	circuit.measureList.append(q)
+	q = q.degenerate()
+	#print(ql[0])
+	return q

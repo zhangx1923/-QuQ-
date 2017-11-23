@@ -202,12 +202,16 @@ class Qubit(BaseQubit):
 		else:
 			value = 0
 		bit = Bit(value,self.ids)	
+		qs = self.entanglement
+		if qs != None:
+			qs.deleteItem([self])
 		return bit
 
 	#delete the qubit
 	def delete(self):
 		self.entanglement = None
-		Qubit.idList.remove(self.ids)
+		if self.ids in Qubit.idList:
+			Qubit.idList.remove(self.ids)
 
 	# def __del__(self):
 	# 	try:

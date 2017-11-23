@@ -16,18 +16,6 @@ import matplotlib.patches as patches
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 import csv
 
-single_gateCompute = {
-	"I":"Gate.Ic(q)",
-	"X":"Gate.Xc(q)",
-	"Y":"Gate.Yc(q)",
-	"Z":"Gate.Zc(q)",
-	"H":"Gate.Hc(q)",
-	"S":"Gate.Sc(q)",
-	"T":"Gate.Tc(q)",
-	"Td":"Gate.Tdc(q)",
-	"Sd":"Gate.Sdc(q)",
-}
-
 styleDic = {
 	"I":[" I ","C5"],
 	"X":["X","C1"],
@@ -39,7 +27,8 @@ styleDic = {
 	"CNOT":["+","C0"],
 	"Td":["Td","C6"],
 	"Sd":["Sd","C7"],
-	"M":["M","C3"]
+	"M":["M","C3"],
+	"qif":["qif","C3"]
 }
 qasmDic = {
 	"I":"id",
@@ -52,7 +41,8 @@ qasmDic = {
 	"CNOT":"cx",
 	"Td":"tdg",
 	"Sd":"sdg",
-	"M":"measure"	
+	"M":"measure",
+	"qif":"qif"
 }
 
 ResLocation = "../results/"
@@ -173,7 +163,7 @@ class Circuit:
 						info = helperFunction.get_curl_info()
 						funName = info[0]
 						line = info[1]
-						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist",funName,line)
+						interactCfg.writeErrorMsg("key " + str(ke) + " is not in Dict:styleDic!",funName,line)
 					if gateName == "+":
 						style = "circle"
 						#wheter the current qubit is the control-qubit
@@ -252,7 +242,7 @@ class Circuit:
 					item = content[m]
 					qubits = item.split(" ")[1].split(",")
 					gate = item.split(" ")[0]
-					if gate == 'NULL':
+					if gate == 'NULL' or gate == 'qif':
 						continue
 					try:
 						gate = qasmDic[gate]
@@ -373,26 +363,24 @@ class Circuit:
 			stateList = []
 			qubitList = self.measureList.copy()
 			hasMeasure = []
-			number = len(qubitList)
 			#record the order of the qubit
 			idList = []
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
 			executeRecord = self.qubitExecuteList.copy()
-			print("QuanSim is computing the result, please wait for a while...")
-			#execute compution of the circuit
-			if self.gateCompute(executeRecord):
-				pass
-			else:
-				info = helperFunction.get_curl_info()
-				funName = info[0]
-				line = info[1]				
-				interactCfg.writeErrorMsg("There is something wrong when act the gates on qubits!",funName,line)
+			print("QuanSim is measuring the qubit, please wait for a while...")
 			#execute the measurement of the qubits
 			for qubit in qubitList:
 				if qubit in hasMeasure:
 					continue
 				hasMeasure.append(qubit)
+				#judge whether act qif on this qubit; if so, pass this loop and continue the next one.
+				hasQIF = False
+				for gates in executeRecord[qubit]:
+					if "qif" in gates:
+						hasQIF = True
+				if hasQIF:
+					continue
 				qs = qubit.entanglement
 				#the current qubit is not in entanglement
 				if qs == None:
@@ -414,8 +402,17 @@ class Circuit:
 						#qubitList.remove(item)
 						if item not in hasMeasure:
 							hasMeasure.append(item)
-						qubitGroup.append(item)
-						idList.append(item.ids)
+						hasQIF = False
+						print(executeRecord[item])
+						for gates in executeRecord[item]:
+							if "qif" in gates:
+								hasQIF = True
+						if hasQIF:
+							pass
+						else:
+							print(executeRecord[item])
+							qubitGroup.append(item)
+							idList.append(item.ids)
 				result = qubit.decideProb(qubitGroup)
 				#delete the measured qubit from its entangle state
 				self.__removeQubit(qubitGroup)
@@ -424,9 +421,11 @@ class Circuit:
 				if len(qs.qubitList) == 0:
 					del qs
 				#there is only one element in qs.qubitList, then there is no need to keep qs
-				if len(qs.qubitList) == 1:
+				elif len(qs.qubitList) == 1:
 					qs.qubitList[0].entanglement = None
 					del qs
+				else:
+					pass
 
 				probList.append(result[0])
 				stateList.append(result[1])
@@ -456,7 +455,7 @@ class Circuit:
 			#delete the zero probility and it corresponding state, and get the result
 			probResult = []
 			stateResult = []
-			orderList = [i for i in range(0,number)]
+			orderList = [i for i in range(0,len(idList))]
 			order = self.__orderTheId(idList,orderList)
 			for index in range(0,len(prob)):
 				#if the prob is in [-0.00001,0.00001], then we regard it as 0
@@ -508,49 +507,6 @@ class Circuit:
 			line = info[1]
 			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)
 
-	#Perform calculations of gate
-	def gateCompute(self,executeRecord:dict):
-		import Gate 
-		qubitList = []
-		maxL = 0
-		for k in executeRecord.keys():
-			qubitList.append(k)
-			maxL = max(len(executeRecord[k]),maxL)
-		for i in range(0,maxL):
-			for q in qubitList:
-				lens = len(executeRecord[q])
-				if i >= lens-1:
-					continue
-				gate = executeRecord[q][i].split(' ')[0]
-				if gate == "M" or gate == "NULL":
-					continue
-				if gate == "CNOT":
-					target = executeRecord[q][i].split(' ')[1].split(',')[1]
-					control = executeRecord[q][i].split(' ')[1].split(',')[0]
-					if str(q.ids) == target:
-						continue
-					qt = None
-					for tmp in qubitList:
-						if str(tmp.ids) == target:
-							qt = tmp
-							break
-					if qt != None:
-						Gate.CNOTc(q,qt)
-						continue
-					else:
-						info = helperFunction.get_curl_info()
-						funName = info[0]
-						line = info[1]
-						interactCfg.writeErrorMsg("The target-qubit of the CNOT is not belong to this Qubit!",funName,line)						
-				try:
-					e = single_gateCompute[gate]
-				except KeyError:
-					info = helperFunction.get_curl_info()
-					funName = info[0]
-					line = info[1]
-					interactCfg.writeErrorMsg("Key '"+gate+"' is not in Dict:single_gateCompute!",funName,line)
-				exec(e)
-		return True
 
 	#remove qubitList from this instance; only the qubit has been measured, it can be removed from this instance
 	def __removeQubit(self,ql:list):

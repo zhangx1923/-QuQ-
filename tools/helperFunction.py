@@ -4,7 +4,7 @@ import sys
 sys.path.append('../baseClass/')
 
 from Bit import Bit
-from Qubit import *
+
 #from Circuit import *
 from interactCfg import *
 
@@ -19,6 +19,7 @@ def getCorrespondStr(number,position):
 #suggest use this function to print message
 #it can decide the style of output according to the type of the input
 def QSprint(data):
+	from Qubit import Qubit,Qubits
 	precision = readCfgP()
 	preStr = '{:.' + str(precision) + 'f}'
 	types = type(data)
