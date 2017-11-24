@@ -9,6 +9,7 @@ import random
 from Bit import Bit
 from Qubit import *
 from Error import *
+from IBMQX import *
 #from Gate import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -488,19 +489,19 @@ class Circuit:
 			self.__QASM(executeRecord)
 			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
+			#post the qasm code to ibm API according to the users's input:Y/N
+			ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
+			if ibmBool == 'Y' or ibmBool == 'y':
+				#yes
+				ibm = IBMQX()
+				ibm.executeQASM()
+			elif ibmBool == 'N' or ibmBool == 'n':
+				#no
+				pass
+			else:
+				print("Invalid input! Only 'Y' or 'N' is allowed! ")
 			#call the destory function to clean the current instance
 			self.__del__()
-			#post the qasm code to ibm API according to the users's input:Y/N
-			# ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
-			# if ibmBool == 'Y' or ibmBool == 'y':
-			# 	#yes
-			# 	print("yes")
-			# elif ibmBool == 'N' or ibmBool == 'n':
-			# 	#no
-			# 	print("no")
-			# else:
-			# 	print("Invalid input! Only 'Y' or 'N' is allowed! ")
-			#self.hh(qubitList,bitList)
 		else:
 			info = helperFunction.get_curl_info()
 			funName = info[0]

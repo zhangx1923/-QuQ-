@@ -24,10 +24,12 @@ def writeErrorMsg(msg,funName,line):
 		file = open(circuit.urls + "/errorMsg.txt","w")
 		time = datetime.datetime.now()
 		errorStr = "Time:" + str(time) + "\r\n"
-		errorStr += "Error Message:"
-		errorStr += funName
-		errorStr += line
+		errorStr += "Error Message: "
 		errorStr += str(msg)
+		errorStr += "\r\n"
+		errorStr += funName
+		errorStr += "\r\n"
+		errorStr += line
 		file.write(errorStr)
 	sys.exit()
 

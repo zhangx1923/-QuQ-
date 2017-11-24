@@ -1,0 +1,8 @@
+WARNING:
+1.can't utilize Q1 as control Qubit and Q2 as target Qubit!
+2.can't utilize Q0 as control Qubit and Q2 as target Qubit!
+3.can't utilize Q1 as control Qubit and Q2 as target Qubit!
+4.can't utilize Q0 as control Qubit and Q2 as target Qubit!
+5.can't utilize Q0 as control Qubit and Q1 as target Qubit!
+6.can't utilize Q0 as control Qubit and Q1 as target Qubit!
+7.can't utilize Q0 as control Qubit and Q1 as target Qubit!
