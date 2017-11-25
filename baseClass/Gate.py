@@ -373,6 +373,14 @@ def Td(q:Qubit):
 #the first qubit is the control-qubit, the second qubit is the target-qubit
 def CNOT(q1:Qubit,q2:Qubit):
 	checkType([q1,q2])
+
+	#q1 is same with q2
+	if id(q1) == id(q2):
+		info = get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg("The control-qubit can't be same with the target-qubit of CNOT gate!",funName,line)	
+	
 	circuit = recordmultiExecution("CNOT",[q1,q2])
 	if circuit == None:
 		return False
