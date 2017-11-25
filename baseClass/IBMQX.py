@@ -17,6 +17,7 @@ MAXTIMES = 8192
 
 class IBMQX:
 	def __init__(self):
+		print("Connecting to the Server...")
 		#change the config message in config/IBMToken.cfg
 		tokenDic = readCfgPM()
 		self.__config = {
@@ -64,6 +65,7 @@ class IBMQX:
 	#adjust the QASM code, which is producted by circuit.QASM(), so that the qubits can satisfy the constraint
 	#of the CNOT connectivity
 	def __canExecute(self):
+		print("Optimizing the QASM-code, please wait for a while...")
 		#the code has been store in circuit.url/QASM.txt
 		circuit = checkEnvironment()
 		if circuit == None:
@@ -74,39 +76,88 @@ class IBMQX:
 			info = get_curl_info()
 			funName = info[0]
 			line = info[1]
-			writeErrorMsg("the QASM code hasn't been generated, please check your code",funName,line)	
+			writeErrorMsg("The QASM code hasn't been generated, please check your code!",funName,line)	
 		file = open(codeLocation)
 		QASM = file.readlines()	
 		file.close()
-		CNOTlist = []
+		CNOTError = []
 		code = ""
-		for line in QASM:
-			print(line)
-			if "cx" in line:
-				strs = line.split(" ")[1].split(',')
+		#store the qubit has been measured
+		measured_q = []
+		lineN = 0
+		while lineN < len(QASM):
+			q = QASM[lineN].split(" ")[1]
+			if q in measured_q:
+				#the qubit has been measured
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("QuanSim can't act any gate on a measured qubit!",funName,line)
+			
+			#the measure must be the last gate on qubits
+			if "measure" in QASM[lineN]:
+				if "," in q:
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]
+					writeErrorMsg("QuanSim can't measure more than one qubit at the same time!",funName,line)
+				measured_q.append(q)
+			if "cx" in QASM[lineN]:
+				strs = q.split(',')
 				#get the id of control-qubit and target-qubit
-				targetQ = strs[1][2]
-				controlQ = strs[0][2]
+				tQ = strs[1][2]
+				cQ = strs[0][2]
+				if cQ in self.connectivity and tQ in self.connectivity[cQ]:
+					#directly satisfy the constraint
+					lineN += 1
+					continue
+				elif tQ in self.connectivity and cQ in self.connectivity[tQ]:
+					#add H gate to satisfy the constraint
+					hExternal = "h q[" + str(cQ) + "];\r\nh q[" + str(tQ) + "];\r\n"
+					QASM.insert(lineN,hExternal)
+					QASM[lineN+1] = "cx q[" + str(tQ) + "],q[" + str(cQ) + "];\r\n"
+					QASM.insert(lineN+2,hExternal)
+					lineN += 1
+					continue
+				else:
+					###################################
+					###################################
+					#how to adjust the map of CNOT
+					###################################
+					###################################
+					pass
 				tmp = [controlQ,targetQ]
-				CNOTlist.append(tmp)
-			code += line
+				if tmp in CNOTError:
+					lineN += 1
+					continue
+				CNOTError.append(tmp)
+			lineN += 1
 		#check the CNOT list whether satisfies the constraint of the connectivity
 		canExecute = True
 		reasonList = []
+		if len(CNOTError) == 0:
+			pass
+		else:
+			for item in CNOTError:
+				cq = str(item[0])#the controlQubit
+				tq = str(item[1])#the targetQubit			
+				#record the reason for why can,'t execute the code
+				canExecute = False
+				reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
+				reasonList.append(reason)
 
-		for item in CNOTlist:
-			cq = str(item[0])#the controlQubit
-			tq = str(item[1])#the targetQubit
-			if cq in self.connectivity:
-				if tq in self.connectivity[cq]:
-					#satisfy the constraint
-					continue
-
-			#record the reason for why can,'t execute the code
-			canExecute = False
-			reason = "can't utilize Q" + cq + " as control Qubit and Q" + tq + " as target Qubit!"
-			reasonList.append(reason)
 		if canExecute:
+			for line in QASM:
+				code += line
+			try:
+				file = open(circuit.urls + "/QASM-modified.txt","w")
+				file.write(code)	
+				file.close()	
+			except IOError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("Can't write QASM code to QASM-modified.txt!",funName,line)		
 			return code
 		file = open(circuit.urls + "/codeWarning.txt",'a')
 		file.write("WARNING:\n")
@@ -132,7 +183,7 @@ class IBMQX:
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("Can't connect to the server, Please try again later!",funName,line)
-		print(result)
+		#print(result)
 
 
 

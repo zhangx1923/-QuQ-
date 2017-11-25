@@ -223,7 +223,7 @@ class Circuit:
 		if self.checkEnvironment():
 			qubitNum = len(er.keys())
 			code = open(self.urls+"/qasm.txt","w")
-			codeHeader = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + str(qubitNum) + '];creg c[' + str(self.qubitNum) + '];'
+			codeHeader = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + str(qubitNum) + '];creg c[' + str(qubitNum) + '];'
 			code.write(codeHeader)
 			code.write("\n")
 			#get the ids of the qubit
