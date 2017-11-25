@@ -79,3 +79,23 @@ def get_curl_info():
 	except:
 		f = sys.exc_info()[2].tb_frame.f_back
 	return [f.f_code.co_name, f.f_lineno]
+
+#sort the qubitList according to the qubit.ids
+def quickSortQubit(ql,low,high):
+	i = low
+	j = high
+	if i >= j:
+		return ql
+	key = ql[low]
+	while i < j:
+		while i < j and ql[j].ids <= key.ids:
+			j = j-1
+		ql[i] = ql[j]
+		while i < j and ql[i].ids >= key.ids:
+			i = i+1
+		ql[j] = ql[i]
+	ql[i] = key
+	quickSortQubit(ql,low,i-1)
+	quickSortQubit(ql,j+1,high)
+	return ql
+	return True

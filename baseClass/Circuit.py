@@ -136,9 +136,12 @@ class Circuit:
 			############################draw the gate according to self.qubitExecuteList###################
 			j = 0
 			maxLength = 0
+			q_keys = []
 			for qe in er.keys():
 				maxLength = max(maxLength,len(er[qe]))
-			for q in er.keys():
+				q_keys.append(qe)
+			quickSortQubit(q_keys,0,len(q_keys)-1)
+			for q in q_keys:
 				if maxLength < 20:
 					factor = 1
 				else:
@@ -172,7 +175,7 @@ class Circuit:
 						controlQubit = item.split(" ")[1].split(",")[0]
 						indexOfTarget = 0
 						#get the index of the target qubit
-						for tmp in er.keys():
+						for tmp in q_keys:
 							if str(tmp.ids) != targetQubit:
 								indexOfTarget += 1
 							else:
@@ -404,14 +407,14 @@ class Circuit:
 						if item not in hasMeasure:
 							hasMeasure.append(item)
 						hasQIF = False
-						print(executeRecord[item])
+						#print(executeRecord[item])
 						for gates in executeRecord[item]:
 							if "qif" in gates:
 								hasQIF = True
 						if hasQIF:
 							pass
 						else:
-							print(executeRecord[item])
+							#print(executeRecord[item])
 							qubitGroup.append(item)
 							idList.append(item.ids)
 				result = qubit.decideProb(qubitGroup)
