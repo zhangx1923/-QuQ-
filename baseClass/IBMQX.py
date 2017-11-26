@@ -91,6 +91,7 @@ class IBMQX:
 		QASM = file.readlines()	
 		file.close()
 		CNOTError = []
+		CNOTList = []
 		code = ""
 		#store the qubit has been measured
 		measured_q = []
@@ -117,6 +118,7 @@ class IBMQX:
 				#get the id of control-qubit and target-qubit
 				tQ = strs[1][2]
 				cQ = strs[0][2]
+				CNOTList.append([cQ,tQ])
 				if cQ in self.connectivity and tQ in self.connectivity[cQ]:
 					#directly satisfy the constraint
 					lineN += 1
@@ -136,7 +138,7 @@ class IBMQX:
 					###################################
 					###################################
 					pass
-				tmp = [controlQ,targetQ]
+				tmp = [cQ,tQ]
 				if tmp in CNOTError:
 					lineN += 1
 					continue
