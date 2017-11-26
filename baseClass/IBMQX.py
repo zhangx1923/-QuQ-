@@ -90,14 +90,12 @@ class IBMQX:
 		file = open(codeLocation)
 		QASM = file.readlines()	
 		file.close()
-		CNOTError = []
 		CNOTList = []
 		code = ""
 		#store the qubit has been measured
 		measured_q = []
-		lineN = 0
-		while lineN < len(QASM):
-			q = QASM[lineN].split(" ")[1]
+		for line in QASM:
+			q = line.split(" ")[1]
 			if q in measured_q:
 				#the qubit has been measured
 				info = get_curl_info()
@@ -106,50 +104,49 @@ class IBMQX:
 				writeErrorMsg("QuanSim can't act any gate on a measured qubit!",funName,line)
 			
 			#the measure must be the last gate on qubits
-			if "measure" in QASM[lineN]:
+			if "measure" in line:
 				if "," in q:
 					info = get_curl_info()
 					funName = info[0]
 					line = info[1]
 					writeErrorMsg("QuanSim can't measure more than one qubit at the same time!",funName,line)
 				measured_q.append(q)
-			if "cx" in QASM[lineN]:
+			if "cx" in line:
 				strs = q.split(',')
 				#get the id of control-qubit and target-qubit
 				tQ = strs[1][2]
 				cQ = strs[0][2]
+				if [cQ,tQ] in CNOTList:
+					continue
 				CNOTList.append([cQ,tQ])
-				if cQ in self.connectivity and tQ in self.connectivity[cQ]:
-					#directly satisfy the constraint
-					lineN += 1
-					continue
-				elif tQ in self.connectivity and cQ in self.connectivity[tQ]:
-					#add H gate to satisfy the constraint
-					hExternal = "h q[" + str(cQ) + "];\r\nh q[" + str(tQ) + "];\r\n"
-					QASM.insert(lineN,hExternal)
-					QASM[lineN+1] = "cx q[" + str(tQ) + "],q[" + str(cQ) + "];\r\n"
-					QASM.insert(lineN+2,hExternal)
-					lineN += 1
-					continue
-				else:
-					###################################
-					###################################
-					#how to adjust the map of CNOT
-					###################################
-					###################################
-					pass
-				tmp = [cQ,tQ]
-				if tmp in CNOTError:
-					lineN += 1
-					continue
-				CNOTError.append(tmp)
-			lineN += 1
+
 		#check the CNOT list whether satisfies the constraint of the connectivity
-		canExecute = True
-		reasonList = []
+		CNOTError = []
+		print(CNOTList)
+		print(self.connectivity)
+
+		for cnot in CNOTList:
+			if cnot in CNOTError:
+				continue
+			cQ = cnot[0]
+			tQ = cnot[1]
+			if cQ in self.connectivity and tQ in self.connectivity[cQ]:
+				#directly satisfy the constraint
+				continue
+			#reverse CNOT; will introduce addtional H and bring noise
+			elif tQ in self.connectivity and cQ in self.connectivity[tQ]:
+				continue
+			else:
+				#此处要用递归调用函数的方式写
+				pass
+			CNOTError.append(tmp)
+
 		if len(CNOTError) == 0:
-			pass
-		else:
+			self.__reverseCNOT(QASM)
+
+		reasonList = []
+		canExecute = True
+		if len(CNOTError) != 0:
 			for item in CNOTError:
 				cq = str(item[0])#the controlQubit
 				tq = str(item[1])#the targetQubit			
@@ -178,6 +175,42 @@ class IBMQX:
 			strs = str(i+1) + "." + reasonList[i] + "\n"
 			file.write(strs)
 		return None
+
+	#get the legal cnot gate in current device
+	def __getLegalCNOT(self):
+		legalCList = []
+		for cQ in self.connectivity:
+			for tQ in self.connectivity[cQ]:
+				if [cQ,tQ] not in legalCList:
+					legalCList.append([cQ,tQ])
+				if [tQ,cQ] not in legalCList:
+					legalCList.append([tQ,cQ])
+		return legalCList
+
+	#modify the qasm code by adding H to reverse the current CNOT
+	def __reverseCNOT(self,QASM):
+		lineN = 0
+		while lineN < len(QASM):
+			if 'cx' in QASM[lineN]:
+				q = QASM[lineN].split(" ")[1]
+				strs = q.split(',')
+				#get the id of control-qubit and target-qubit
+				tQ = strs[1][2]
+				cQ = strs[0][2]
+				if cQ in self.connectivity and tQ in self.connectivity[cQ]:
+					pass
+				elif tQ in self.connectivity and cQ in self.connectivity[tQ]:				
+					#add H gate to satisfy the constraint
+					hExternal = "h q[" + str(cQ) + "];\r\nh q[" + str(tQ) + "];\r\n"					
+					gateStr = "cx q[" + str(cQ) + "],q[" + str(tQ) + "];"
+					if gateStr in QASM[lineN]:
+						QASM.insert(lineN,hExternal)
+						QASM[lineN+1] = "cx q[" + str(tQ) + "],q[" + str(cQ) + "];\r\n"
+						QASM.insert(lineN+2,hExternal)
+				else:
+					pass
+			lineN += 1 
+
 
 	#execute the code
 	def executeQASM(self,experimentName = None):

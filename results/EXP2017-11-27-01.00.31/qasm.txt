@@ -17,7 +17,6 @@ t q[2];
 tdg q[1];
 h q[2];
 cx q[0],q[1];
-measure q[2] -> c[2];
 t q[0];
 s q[1];
 h q[0];
