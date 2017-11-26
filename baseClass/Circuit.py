@@ -70,11 +70,12 @@ class Circuit:
 			#the whole result of the experiment is stored in this folder
 			try:
 				os.makedirs(ResLocation+self.name) 
-			except OSError as oe:
+			except OSError:
 				info = helperFunction.get_curl_info()
 				funName = info[0]
 				line = info[1]
-				interactCfg.writeErrorMsg(oe,funName,line)		
+				interactCfg.writeErrorMsg("Can't create the new folder '" + self.name + "'!",funName,line)	
+
 		self.urls = ResLocation+self.name
 		#each qubit stands for a individual dimension
 		#see /doc/Class-relation.doc for details
@@ -208,8 +209,8 @@ class Circuit:
 			#plt.show()
 			#save the circuit
 			Fig.savefig(self.urls + "/circuit.jpg")			
-			print("the circuit has been stored in " + self.urls.split("..")[1]  + "/circuit.jpg")
-			print("-------------------------- the circuit has been drawn --------------------------\n")
+			#print("the circuit has been stored in " + self.urls.split("..")[1]  + "/circuit.jpg")
+			print("the circuit has been drawn!\n")
 			return True
 		else:
 			info = helperFunction.get_curl_info()
@@ -278,8 +279,8 @@ class Circuit:
 							code.write(",")
 					code.write(";")
 					code.write("\n")					
-			print("the code has been stored in " + self.urls.split("..")[1] + "/qasm.txt")
-			print("----------------------- the QASM code has been exported ------------------------\n")
+			#print("the code has been stored in " + self.urls.split("..")[1] + "/qasm.txt")
+			print("the QASM code has been exported!\n")
 			return True
 		else:
 			info = helperFunction.get_curl_info()
@@ -338,8 +339,8 @@ class Circuit:
 			#save the picture
 			#plt.show()
 			Fig.savefig(self.urls + "/chart.jpg")			
-			print("the circuit has been stored in " + self.urls.split("..")[1]  + "/chart.jpg")
-			print("------------------ the chart of the circuit has been exported ------------------\n")
+			#print("the circuit has been stored in " + self.urls.split("..")[1]  + "/chart.jpg")
+			print("the chart of the circuit has been exported!\n")
 			return True
 		else:
 			info = helperFunction.get_curl_info()
@@ -686,8 +687,8 @@ class Circuit:
 			data.append(tuples)
 		writer.writerows(data)
 		csvFile.close()
-		print("the csv file has been stored in " + self.urls.split("..")[1]  + "/originalData.csv")
-		print("--------------------- the original data has been exported ----------------------\n")
+		#print("the csv file has been stored in " + self.urls.split("..")[1]  + "/originalData.csv")
+		print("the original data has been exported!\n")
 		return True
 
 		
