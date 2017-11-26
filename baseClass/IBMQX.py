@@ -116,7 +116,8 @@ class IBMQX:
 				#get the id of control-qubit and target-qubit
 				tQ = strs[1][2]
 				cQ = strs[0][2]
-				if [cQ,tQ] in CNOTList:
+				#the reverse cnot won't be appended to the list
+				if [cQ,tQ] in CNOTList or [tQ,cQ] in CNOTList:
 					continue
 				CNOTList.append([cQ,tQ])
 
@@ -124,6 +125,18 @@ class IBMQX:
 		CNOTError = []
 		print(CNOTList)
 		print(self.connectivity)
+
+		#从宏观的角度分析，总共的连接关系，节点的入度和出度
+		#convert the cnotList to dic
+		CNOTDic = {}
+		for cnot in CNOTList:
+			cQ = cnot[0]
+			tQ = cnot[1]
+			if cQ in CNOTDic:
+				CNOTDic[cQ].append(tQ)
+			else:
+				CNOTDic[cQ] = [tQ]
+		
 
 		for index in range(0,len(CNOTList)):
 			if CNOTList[index] in CNOTError:
