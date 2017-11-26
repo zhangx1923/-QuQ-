@@ -125,20 +125,36 @@ class IBMQX:
 		print(CNOTList)
 		print(self.connectivity)
 
-		for cnot in CNOTList:
-			if cnot in CNOTError:
+		for index in range(0,len(CNOTList)):
+			if CNOTList[index] in CNOTError:
 				continue
-			cQ = cnot[0]
-			tQ = cnot[1]
-			if cQ in self.connectivity and tQ in self.connectivity[cQ]:
-				#directly satisfy the constraint
-				continue
-			#reverse CNOT; will introduce addtional H and bring noise
-			elif tQ in self.connectivity and cQ in self.connectivity[tQ]:
+			cQ = CNOTList[index][0]
+			tQ = CNOTList[index][1]
+			if self.__checkConstraint([cQ,tQ]):
 				continue
 			else:
-				#此处要用递归调用函数的方式写
-				pass
+				#先从宏观的角度来分析：总共有多少种连接关系，对应的入度和出度
+				#宏观的角度发现可以执行，那么就是可以执行的
+				if cQ in self.connectivity:
+					for t in self.connectivity[cQ]:
+						CNOTList[index][1] = t
+						tBool = True
+						for i in range(0,index):
+							if CNOTList[i][0] == tQ:
+								CNOTList[i][0] = t
+							if CNOTList[i][1] == tQ:
+								CNOTList[i][1] = t
+							if self.__checkConstraint([CNOTList[i][0],CNOTList[i][1]]):
+								continue
+							else:
+								tBool = False
+								break
+						if tBool:
+							break
+						else:
+							continue
+				else:
+					#改变cQ，tQ是否改变需要再讨论
 			CNOTError.append(tmp)
 
 		if len(CNOTError) == 0:
@@ -175,6 +191,28 @@ class IBMQX:
 			strs = str(i+1) + "." + reasonList[i] + "\n"
 			file.write(strs)
 		return None
+
+	#check cnot whether satisfies the constraint
+	#the format of cnot should be [1,3]
+	def __checkConstraint(self,cnot:list):
+		if len(cnot) != 2:
+			try:
+				raise ValueError
+			except ValueError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("The cnot should be two-dimension!",funName,line)
+		cQ = cnot[0]
+		tQ = cnot[1]
+		if cQ in self.connectivity and tQ in self.connectivity[cQ]:
+			#directly satisfy the constraint
+			return True
+		#reverse CNOT; will introduce addtional H and bring noise
+		elif tQ in self.connectivity and cQ in self.connectivity[tQ]:
+			return True
+		else:
+			return False
 
 	#get the legal cnot gate in current device
 	def __getLegalCNOT(self):
