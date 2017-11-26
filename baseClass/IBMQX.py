@@ -183,7 +183,10 @@ class IBMQX:
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("Can't connect to the server, Please try again later!",funName,line)
-		#print(result)
+		#analyse the message
+		try:
+			print(result['status'])
+		except 
 
 
 

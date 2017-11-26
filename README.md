@@ -3,10 +3,10 @@
 **Contributors:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Institution:** Key laboratory of CPS-DSC, Chongqing University
 ## Introduction
-QuanSim is a platform of quantum programming， which consists of a quantum simulator and a suit of quantum program language. With the support of QuanSim, we can design and implement quantum algorithms and vertify the performance of algorithms. What's more, we can design quantum programming language on this platform. If you have any questions, please contact with zhang.x\@cqu.edu.cn.
+QuanSim is a platform of quantum programming, which consists of a quantum simulator and a suit of quantum program language. With the support of QuanSim, we can design and implement quantum algorithms and vertify the performance of algorithms. What's more, we can design quantum programming language on this platform. If you have any questions, please contact with zhang.x\@cqu.edu.cn.
 ## QuanSim
 ### Architecture
-The architecture of QuanSim is shown as follow.
+QuanSim is developed by Python3 and the architecture of it is shown as follow.
 ![](https://raw.githubusercontent.com/zhangxin20121923/QuanSim/master/pic/QuanSim-FrameWork.png) 
 We should point out that "Decohenerce Simulator", "Quantum Program Control-flow" and "Analysis and Verification of Quantum program" are still under development. And we will release them in the future.
 
@@ -29,6 +29,15 @@ You can run QuanSim in the following two ways:<br/>
 
 ### Design Your Own Code
 Create a new file in *UserCode* folder and name it *\*\*.py*. Design an entry function in this file. Please note that the name of the entry function shouldn't be same with any existing funciton. Then add the name of the file and the entry function to *function.cfg*.
+
+### Package Dependency
+In order to taste all the features of QuanSim, the following Python package is compulsive:<br/>
+1.*matplotlib-2.1*<br/>
+2.*numpy-1.13.3*<br/>
+3.*pillow-4.2.1*<br/>
+4.*psutil-5.4.0*<br/>
+The following packsge is optional:<br/>
+1.*IBMQuantumExperience-1.8.16*
 
 ## Development Plan
 We should point out that there are still some features that haven't been developed yet:

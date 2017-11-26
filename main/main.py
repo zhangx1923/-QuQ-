@@ -2,9 +2,12 @@ import sys
 sys.path.append('../userCode/')
 sys.path.append('../tools/')
 from interactCfg import readCfgEA
+import warnings
 #from Grover import grover
 
 if __name__ == "__main__":
+	#ignore the warning message
+	warnings.filterwarnings("ignore")
 	print('-' * 80)
 	print('')
 	print(' '*30 + "Welcome to QuanSim!" + " "*20)
