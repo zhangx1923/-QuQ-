@@ -138,9 +138,9 @@ class IBMQX:
 					totalConnectivity[tQ].append(cQ)
 				else:
 					totalConnectivity[tQ] = [cQ]
-		maxNeighbor = self.__getMaxNeighbor(totalConnectivity)
 
-		needJudge = False
+		#record the reason for why can't execute the code
+		reasonList = []
 		#judge whether the circuit can execute on ibm ships
 		for index in range(0,len(CNOTList)):
 			cQ = CNOTList[index][0]
@@ -149,30 +149,27 @@ class IBMQX:
 				continue
 			else:
 				#the cQ,tQ don't satisfy the constraint
-				needJudge = True
-				break
+				if self.__adjustID(CNOTList,index,totalConnectivity,reasonList):
+					#successful adjust the CNOT[0 to index]
+					continue
+				else:
+					break
 
-		CNOTError = []
-		if needJudge:
-			#adjust the id of the qubit
-			CNOTError = self.__adjustID(CNOTList,totalConnectivity)
-			#CNOTError.append()
-
-		if len(CNOTError) == 0:
+		if len(reasonList) == 0:
 			self.__reverseCNOT(QASM)
 
-		#record the reason for why can't execute the code
-		reasonList = []
-		canExecute = True
-		if len(CNOTError) != 0:
-			for item in CNOTError:
-				cq = str(item[0])#the controlQubit
-				tq = str(item[1])#the targetQubit			
-				canExecute = False
-				reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
-				reasonList.append(reason)
+	
+		# canExecute = True
+		# if len(CNOTError) != 0:
+		# 	for item in CNOTError:
+		# 		cq = str(item[0])#the controlQubit
+		# 		tq = str(item[1])#the targetQubit			
+		# 		canExecute = False
+		# 		reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
+		# 		reasonList.append(reason)
 
-		if canExecute:
+		#the circuit can be executed
+		if len(reasonList) == 0:
 			for line in QASM:
 				code += line
 			try:
@@ -185,6 +182,7 @@ class IBMQX:
 				line = info[1]
 				writeErrorMsg("Can't write QASM code to QASM-modified.txt!",funName,line)		
 			return code
+		#can't execute the circuit
 		file = open(circuit.urls + "/IBMQX/codeWarning.txt",'a')
 		file.write("WARNING:\n")
 		#write the reason in codeWarning.txt
@@ -193,19 +191,15 @@ class IBMQX:
 			file.write(strs)
 		return None
 
-	def __adjustID(self,cl:list,tc:list):
-		CNOTError = []
-		i = 0
-		while i < len(cl):
-			if self.__checkConstraint(cl[i],tc):
-				i += 1
-				continue
-			#the current loop doesn't satisfy the constraint
-			cQ = cl[i][0]
-			tQ = cl[i][1]
-			times = 0
-			
-		return CNOTError
+	#the first argument is the cnotList appeared in current circuit;
+	#the second argument is the iTH cont in cnotList which doesn't satisfy the constraint
+	#the third argument is the totalConnectivity
+	#the fourth argument is the reasonList for why the circuit can't be executed
+	def __adjustID(self,cl:list,i:int,tc:list,rl:list):
+		cQ = cl[i][0]
+		tQ = cl[i][1]
+		#递归函数？？
+
 
 	#the the max neighbor in totalconnectivity
 	def __getMaxNeighbor(self,tc):
