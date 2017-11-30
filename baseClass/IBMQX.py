@@ -122,64 +122,52 @@ class IBMQX:
 				CNOTList.append([cQ,tQ])
 
 		#check the CNOT list whether satisfies the constraint of the connectivity
-		CNOTError = []
 		print(CNOTList)
 		print(self.connectivity)
 
-		#从宏观的角度分析，总共的连接关系，节点的入度和出度
-		#convert the cnotList to dic
-		CNOTDic = {}
-		for cnot in CNOTList:
-			cQ = cnot[0]
-			tQ = cnot[1]
-			if cQ in CNOTDic:
-				CNOTDic[cQ].append(tQ)
-			else:
-				CNOTDic[cQ] = [tQ]
-		
+		#add self.connectivity and reverse self.connectivity
+		totalConnectivity = {}
+		maxNeighbor = 0
+		for cQ in self.connectivity:
+			for tQ in self.connectivity[cQ]:
+				if cQ in totalConnectivity:
+					totalConnectivity[cQ].append(tQ)
+				else:
+					totalConnectivity[cQ] = [tQ]
+				if tQ in totalConnectivity:
+					totalConnectivity[tQ].append(cQ)
+				else:
+					totalConnectivity[tQ] = [cQ]
+		maxNeighbor = self.__getMaxNeighbor(totalConnectivity)
 
+		needJudge = False
+		#judge whether the circuit can execute on ibm ships
 		for index in range(0,len(CNOTList)):
-			if CNOTList[index] in CNOTError:
-				continue
 			cQ = CNOTList[index][0]
 			tQ = CNOTList[index][1]
-			if self.__checkConstraint([cQ,tQ]):
+			if self.__checkConstraint([cQ,tQ],totalConnectivity):
 				continue
 			else:
-				#先从宏观的角度来分析：总共有多少种连接关系，对应的入度和出度
-				#宏观的角度发现可以执行，那么就是可以执行的
-				if cQ in self.connectivity:
-					for t in self.connectivity[cQ]:
-						CNOTList[index][1] = t
-						tBool = True
-						for i in range(0,index):
-							if CNOTList[i][0] == tQ:
-								CNOTList[i][0] = t
-							if CNOTList[i][1] == tQ:
-								CNOTList[i][1] = t
-							if self.__checkConstraint([CNOTList[i][0],CNOTList[i][1]]):
-								continue
-							else:
-								tBool = False
-								break
-						if tBool:
-							break
-						else:
-							continue
-				else:
-					#改变cQ，tQ是否改变需要再讨论
-			CNOTError.append(tmp)
+				#the cQ,tQ don't satisfy the constraint
+				needJudge = True
+				break
+
+		CNOTError = []
+		if needJudge:
+			#adjust the id of the qubit
+			CNOTError = self.__adjustID(CNOTList,totalConnectivity)
+			#CNOTError.append()
 
 		if len(CNOTError) == 0:
 			self.__reverseCNOT(QASM)
 
+		#record the reason for why can't execute the code
 		reasonList = []
 		canExecute = True
 		if len(CNOTError) != 0:
 			for item in CNOTError:
 				cq = str(item[0])#the controlQubit
 				tq = str(item[1])#the targetQubit			
-				#record the reason for why can,'t execute the code
 				canExecute = False
 				reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
 				reasonList.append(reason)
@@ -205,9 +193,38 @@ class IBMQX:
 			file.write(strs)
 		return None
 
+	def __adjustID(self,cl:list,tc:list):
+		CNOTError = []
+		i = 0
+		while i < len(cl):
+			if self.__checkConstraint(cl[i],tc):
+				i += 1
+				continue
+			#the current loop doesn't satisfy the constraint
+			cQ = cl[i][0]
+			tQ = cl[i][1]
+			times = 0
+			
+		return CNOTError
+
+	#the the max neighbor in totalconnectivity
+	def __getMaxNeighbor(self,tc):
+		if type(tc) != dict:
+			try:
+				raise TypeError
+			except TypeError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("The type of the argument must be Dict!",funName,line)
+		maxs = 0
+		for c in tc:
+			maxs = max(maxs,len(tc[c]))
+		return maxs
+
 	#check cnot whether satisfies the constraint
 	#the format of cnot should be [1,3]
-	def __checkConstraint(self,cnot:list):
+	def __checkConstraint(self,cnot:list,tc):
 		if len(cnot) != 2:
 			try:
 				raise ValueError
@@ -218,11 +235,8 @@ class IBMQX:
 				writeErrorMsg("The cnot should be two-dimension!",funName,line)
 		cQ = cnot[0]
 		tQ = cnot[1]
-		if cQ in self.connectivity and tQ in self.connectivity[cQ]:
+		if cQ in tc and tQ in tc[cQ]:
 			#directly satisfy the constraint
-			return True
-		#reverse CNOT; will introduce addtional H and bring noise
-		elif tQ in self.connectivity and cQ in self.connectivity[tQ]:
 			return True
 		else:
 			return False
