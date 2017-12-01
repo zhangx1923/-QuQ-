@@ -25,6 +25,7 @@ class IBMQX:
 		}	
 		#init the api
 		self.api = IBMQuantumExperience(tokenDic['token'], self.__config)
+		print("Getting the available backend information...")
 		deviceList = self.__getAvailalbeBak()
 		self.device = tokenDic['device']
 		self.shot = int(tokenDic['shot'])
@@ -68,8 +69,14 @@ class IBMQX:
 		result = []
 		lists = self.api.available_backends()
 		for item in lists:
-			backend = item['name']
-			result.append(backend)
+			try:
+				backend = item['name']
+				result.append(backend)
+			except KeyError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg("Can't get the key:'name' in the backend information!".funName,line)
 		return result
 
 	#adjust the QASM code, which is producted by circuit.QASM(), so that the qubits can satisfy the constraint
