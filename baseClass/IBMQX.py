@@ -137,9 +137,14 @@ class IBMQX:
 		print(totalConnectivity)
 		#record the reason for why can't execute the code
 		reasonList = []
-
+		cnotBool = True
+		idBool = True
 		idBool = self.__determindID(totalConnectivity,reasonList)
-		cnotBool = self.__adjustCNOT(0,totalConnectivity,reasonList)
+		if idBool:
+			cnotBool = self.__checkAllConstraint(CNOTList,totalConnectivity)
+			if cnotBool == False:
+				#when __adjustCNOT was called, the CNOTList doesn't satisfy the constraint of IBM directly
+				cnotBool = self.__adjustCNOT(totalConnectivity,reasonList)
 
 		#the circuit can be executed
 		if idBool & cnotBool:
@@ -212,6 +217,84 @@ class IBMQX:
 			#because actualQubit is more than useQubit, the actualQubit[0] is always existing
 			qMap[q] = availalbleQ[0]
 			availalbleQ.remove(availalbleQ[0])
+		self.__changeQASMandCNOT(qMap)
+		return True
+
+	#check the CNOT list whether satisfies the constraint of the connectivity
+	#if satisfies or we can adjust the cnot to satisfy the constraint, return True;
+	#else return False and store the 'bad' cnot in reasonList 
+	def __adjustCNOT(self,totalConnectivity,reasonList):
+ 		cnotNum = len(CNOTList)
+ 		ibmNum = 0
+ 		for k in self.connectivity:
+ 			ibmNum += len(self.connectivity[k])
+ 		if cnotNum > ibmNum:
+ 			reason = "There are " + str(cnotNum) + " different connectivities in this circuit, but only " + str(ibmNum) + " are allowd in IBM chip!"
+ 			reasonList.append(reason)
+ 			return False
+ 		CNOTDic = {}
+ 		for c in CNOTList:
+ 			if c[0] in CNOTDic:
+ 				CNOTDic[c[0]].append(c[1])
+ 			else:
+ 				CNOTDic[c[0]] = [c[1]]
+ 		#{degree1:[qubit.ids,...],degree2:[qubit1.ids..]}
+ 		degCNOTDic = {}
+ 		degList = []
+ 		for cQ in CNOTDic:
+ 			degree = len(CNOTDic[cQ])
+ 			degList.append(degree)
+ 			if degree in degCNOTDic:
+ 				degCNOTDic[degree].append(cQ)
+ 			else:
+ 				degCNOTDic[degree] = [cQ]
+ 		degList.sort()
+ 		degList.reverse()
+
+ 		degtCNOTDic = {}
+ 		degtList = []
+ 		for tcQ in totalConnectivity:
+ 			degree = len(totalConnectivity[tcQ])
+ 			degtList.append(degree)
+ 			if degree in degtCNOTDic:
+ 				degtCNOTDic[degree].append(tcQ)
+ 			else:
+ 				degtCNOTDic[degree] = [tcQ]
+ 		degtList.sort()
+ 		degtList.reverse()
+
+ 		if len(degList) > len(degtList):
+ 			reason = "There are " + str(len(degList)) + " entangled with other qubits, but only " + str(len(degtList)) + " are allowd in IBM!"
+ 			reasonList.append(reason)
+ 			return False
+
+ 		posMap = {}
+ 		# for d in degList:
+ 		# 	if d > max(degtList):
+ 		# 		for q in degCNOTDic[d]:
+ 		# 			reason = "Q" + str(q) + " can't connect with " + max(degtList) + " qubits!"
+ 		# 			reasonList.append(reason)
+ 		# 		return False
+ 		# 	for dt in degtList:
+ 		# 		if dt >= d:
+ 		
+ 		#degList,degCNOTDic,degtList,degtCNOTDic
+ 		for iDT in range(0,len(degtList)):
+			if degtList[iDT] >= degList[iDT]
+				set a map
+				continue
+ 					
+
+
+
+
+
+				# reason = "Can't utilize Q" + str(CNOTList[iTH][0]) + " as the control Qubit and Q" + str(CNOTList[iTH][1]) + " as the target Qubit!"
+				# reasonList.append(reason)			
+
+
+	#the type of qMap is dict
+	def __changeQASMandCNOT(self,qMap):
 		#change the id to satisfy the requirement
 		for i in range(0,len(CNOTList)):
 			for j in range(0,len(CNOTList[i])):
@@ -224,20 +307,6 @@ class IBMQX:
 				qs = mode.findall(QASM[l])
 				for q in qs:
 					QASM[l] = QASM[l].replace("[" + str(q) + "]","[" + str(qMap[int(q)]) + "]")
-		return True
-
-	#check the CNOT list whether satisfies the constraint of the connectivity
-	#if satisfies or we can adjust the cnot to satisfy the constraint, return True;
-	#else return False and store the 'bad' cnot in reasonList 
-	def __adjustCNOT(self,iTH,totalConnectivity,reasonList):
-		#iTH: the iTH cnot in CNOTList, the 0 to (i-1)TH cnot satidfy the constraint
-		if self.__checkConstraint(CNOTList[iTH],totalConnectivity):
-			#satisfy the constraint
-			self.__adjustCNOT(QASM,CNOTList,iTH+1,totalConnectivity,reasonList)
-
-		#reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
-		#reasonList.append(reason)
-		return True
 
 	#the the max neighbor in totalconnectivity
 	def __getMaxNeighbor(self,tc):
@@ -256,7 +325,7 @@ class IBMQX:
 
 	#check cnot whether satisfies the constraint
 	#the format of cnot should be [1,3]
-	def __checkConstraint(self,cnot:list,tc):
+	def __checkSingleConstraint(self,cnot:list,tc):
 		if len(cnot) != 2:
 			try:
 				raise ValueError
@@ -272,6 +341,13 @@ class IBMQX:
 			return True
 		else:
 			return False
+	def __checkAllConstraint(self,cnotList,tc):
+		for c in cnotList:
+			if self.__checkSingleConstraint(c,tc):
+				continue
+			else:
+				return False
+		return True
 
 	#get the legal cnot gate in current device
 	def __getLegalCNOT(self):
