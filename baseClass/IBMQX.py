@@ -15,6 +15,8 @@ def get_curl_info():
 
 #the max execute times is made by IBM stuff
 MAXTIMES = 8192
+#the min executive times is made by IBM stuff
+MINTIMES = 1
 
 class IBMQX:
 	def __init__(self):
@@ -38,7 +40,7 @@ class IBMQX:
 				funName = info[0]
 				line = info[1]
 				writeErrorMsg(ie.value,funName,line)	
-		if self.shot < 1 or self.shot > MAXTIMES:
+		if self.shot < MINTIMES or self.shot > MAXTIMES:
 			try:
 				raise IBMError("the execute times must be from 1 to 8192, but the input is " + str(self.shot))
 			except IBMError as ie:
