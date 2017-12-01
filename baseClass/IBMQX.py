@@ -135,20 +135,14 @@ class IBMQX:
 		print(totalConnectivity)
 		#record the reason for why can't execute the code
 		reasonList = []
-
 		idBool = True
 		cnotBool = True
 
-		#determind whether the number of qubit in this circuit is more than the actual number
-		#if bigger, return False; else return True;
-		#if necessary, adjust the id of the qubit so that they are in line with the actual device
 		ibBool = self.__determindID(QASM,CNOTList,qubitList,totalConnectivity,reasonList)
 
 		#check the CNOT list whether satisfies the constraint of the connectivity
 		for index in range(0,len(CNOTList)):
-			cQ = CNOTList[index][0]
-			tQ = CNOTList[index][1]
-			if self.__checkConstraint([cQ,tQ],totalConnectivity):
+			if self.__checkConstraint(CNOTList[index],totalConnectivity):
 				continue
 			else:
 				#the cQ,tQ don't satisfy the constraint
@@ -158,10 +152,6 @@ class IBMQX:
 				else:
 					break
 
-		if len(reasonList) == 0:
-			self.__reverseCNOT(QASM)
-
-	
 		# canExecute = True
 		# if len(CNOTError) != 0:
 		# 	for item in CNOTError:
@@ -173,6 +163,7 @@ class IBMQX:
 
 		#the circuit can be executed
 		if idBool & cnotBool:
+			self.__reverseCNOT(QASM)
 			for line in QASM:
 				code += line
 			try:
@@ -185,6 +176,7 @@ class IBMQX:
 				line = info[1]
 				writeErrorMsg("Can't write QASM code to QASM-modified.txt!",funName,line)		
 			return code
+
 		#can't execute the circuit
 		file = open(circuit.urls + "/IBMQX/codeWarning.txt",'a')
 		file.write("WARNING:\n")
@@ -209,6 +201,9 @@ class IBMQX:
 					totalConnectivity[tQ] = [cQ]
 		return totalConnectivity		
 
+	#determind whether the number of qubit in this circuit is more than the actual number
+	#if bigger, return False; else return True;
+	#if necessary, adjust the id of the qubit so that they are in line with the actual device
 	def __determindID(self,QASM,CNOTList,qubitList,totalConnectivity,reasonList):
 		#we assume that there is no qubit isolated in ibm chip!
 		useQubit = len(qubitList)
