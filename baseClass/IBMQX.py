@@ -4,6 +4,7 @@ from interactCfg import *
 from Error import *
 import os
 import sys
+import re
 #get the info about the function name and the line number
 def get_curl_info():
 	try:
@@ -97,58 +98,53 @@ class IBMQX:
 		file = open(codeLocation)
 		QASM = file.readlines()	
 		file.close()
+		#record the ids of qubits in the current circuit
+		qubitList = []
+		#record the cnot map in the current circuit
 		CNOTList = []
 		code = ""
-		#store the qubit has been measured
-		measured_q = []
-		for line in QASM:
-			q = line.split(" ")[1]
-			if q in measured_q:
-				#the qubit has been measured
-				info = get_curl_info()
-				funName = info[0]
-				line = info[1]
-				writeErrorMsg("QuanSim can't act any gate on a measured qubit!",funName,line)
-			
-			#the measure must be the last gate on qubits
-			if "measure" in line:
-				if "," in q:
-					info = get_curl_info()
-					funName = info[0]
-					line = info[1]
-					writeErrorMsg("QuanSim can't measure more than one qubit at the same time!",funName,line)
-				measured_q.append(q)
-			if "cx" in line:
-				strs = q.split(',')
-				#get the id of control-qubit and target-qubit
-				tQ = strs[1][2]
-				cQ = strs[0][2]
-				#the reverse cnot won't be appended to the list
-				if [cQ,tQ] in CNOTList or [tQ,cQ] in CNOTList:
-					continue
-				CNOTList.append([cQ,tQ])
 
-		#check the CNOT list whether satisfies the constraint of the connectivity
+		#fine the num in the str
+		mode = re.compile(r'\d+')
+		#analyse the QASM code
+		for l in range(0,len(QASM)):
+			if l == 0:
+				continue
+			else:
+				qs = mode.findall(QASM[l])
+				if "measure" in QASM[l]:
+					qs = [qs[0]]
+				for q in qs:
+					if int(q) in qubitList:
+						continue
+					else:
+						qubitList.append(int(q))
+				if "cx" in QASM[l]:
+					#get the id of control-qubit and target-qubit
+					tQ = int(qs[1])
+					cQ = int(qs[0])
+					#the reverse cnot won't be appended to the list
+					if [cQ,tQ] in CNOTList or [tQ,cQ] in CNOTList:
+						continue
+					CNOTList.append([cQ,tQ])
+		
+		totalConnectivity = self.__getTotalConnectivity()
 		print(CNOTList)
+		print(qubitList)
 		print(self.connectivity)
-
-		#add self.connectivity and reverse self.connectivity
-		totalConnectivity = {}
-		maxNeighbor = 0
-		for cQ in self.connectivity:
-			for tQ in self.connectivity[cQ]:
-				if cQ in totalConnectivity:
-					totalConnectivity[cQ].append(tQ)
-				else:
-					totalConnectivity[cQ] = [tQ]
-				if tQ in totalConnectivity:
-					totalConnectivity[tQ].append(cQ)
-				else:
-					totalConnectivity[tQ] = [cQ]
-
+		print(totalConnectivity)
 		#record the reason for why can't execute the code
 		reasonList = []
-		#judge whether the circuit can execute on ibm ships
+
+		idBool = True
+		cnotBool = True
+
+		#determind whether the number of qubit in this circuit is more than the actual number
+		#if bigger, return False; else return True;
+		#if necessary, adjust the id of the qubit so that they are in line with the actual device
+		ibBool = self.__determindID(QASM,CNOTList,qubitList,totalConnectivity,reasonList)
+
+		#check the CNOT list whether satisfies the constraint of the connectivity
 		for index in range(0,len(CNOTList)):
 			cQ = CNOTList[index][0]
 			tQ = CNOTList[index][1]
@@ -176,7 +172,7 @@ class IBMQX:
 		# 		reasonList.append(reason)
 
 		#the circuit can be executed
-		if len(reasonList) == 0:
+		if idBool & cnotBool:
 			for line in QASM:
 				code += line
 			try:
@@ -197,6 +193,62 @@ class IBMQX:
 			strs = str(i+1) + "." + reasonList[i] + "\n"
 			file.write(strs)
 		return None
+
+	#add self.connectivity and reverse self.connectivity, the type of the returned parameter is dict
+	def __getTotalConnectivity(self):
+		totalConnectivity = {}
+		for cQ in self.connectivity:
+			for tQ in self.connectivity[cQ]:
+				if cQ in totalConnectivity:
+					totalConnectivity[cQ].append(tQ)
+				else:
+					totalConnectivity[cQ] = [tQ]
+				if tQ in totalConnectivity:
+					totalConnectivity[tQ].append(cQ)
+				else:
+					totalConnectivity[tQ] = [cQ]
+		return totalConnectivity		
+
+	def __determindID(self,QASM,CNOTList,qubitList,totalConnectivity,reasonList):
+		#we assume that there is no qubit isolated in ibm chip!
+		useQubit = len(qubitList)
+		actualQubit = len(totalConnectivity)
+		if useQubit > actualQubit:
+			reasonList.append("There are "+ str(useQubit) + " have been used! But the device you choose only have " + str(actualQubit) + " qubits!")
+			return False
+		if max(qubitList) < actualQubit:
+			return True
+		qubitList.sort()
+		availalbleQ = [i for i in range(0,actualQubit)]
+		qMap = {}
+		for q in qubitList:
+			qMap[q] = q
+			if q < actualQubit:
+				try:
+					availalbleQ.remove(q)
+				except ValueError:
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]
+					writeErrorMsg("Q "+ str(q) + " isn't available!",funName,line)
+				continue
+			#q >= actualQubit
+			#because actualQubit is more than useQubit, the actualQubit[0] is always existing
+			qMap[q] = availalbleQ[0]
+			availalbleQ.remove(availalbleQ[0])
+		#change the id to satisfy the requirement
+		for i in range(0,len(CNOTList)):
+			for j in range(0,len(CNOTList[i])):
+				CNOTList[i][j] = qMap[CNOTList[i][j]]
+		mode = re.compile(r'\d+')
+		for l in range(0,len(QASM)):
+			if l == 0:
+				continue
+			else:
+				qs = mode.findall(QASM[l])
+				for q in qs:
+					QASM[l] = QASM[l].replace("[" + str(q) + "]","[" + str(qMap[int(q)]) + "]")
+		return True
 
 	#the first argument is the cnotList appeared in current circuit;
 	#the second argument is the iTH cont in cnotList which doesn't satisfy the constraint
