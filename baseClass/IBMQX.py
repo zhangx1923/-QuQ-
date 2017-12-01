@@ -34,7 +34,7 @@ class IBMQX:
 		self.shot = int(tokenDic['shot'])
 		if self.device not in deviceList:
 			try:
-				raise IBMError("the seleted device isn't available")
+				raise IBMError("The seleted device isn't available")
 			except IBMError as ie:
 				info = get_curl_info()
 				funName = info[0]
@@ -42,7 +42,7 @@ class IBMQX:
 				writeErrorMsg(ie.value,funName,line)	
 		if self.shot < MINTIMES or self.shot > MAXTIMES:
 			try:
-				raise IBMError("the execute times must be from 1 to 8192, but the input is " + str(self.shot))
+				raise IBMError("The execute times must be from " + str(MINTIMES) + " to " + str(MAXTIMES) + ", but the input is " + str(self.shot))
 			except IBMError as ie:
 				info = get_curl_info()
 				funName = info[0]
@@ -98,13 +98,13 @@ class IBMQX:
 			line = info[1]
 			writeErrorMsg("The QASM code hasn't been generated, please check your code!",funName,line)	
 		file = open(codeLocation)
+		global QASM,qubitList,CNOTList
 		QASM = file.readlines()	
 		file.close()
 		#record the ids of qubits in the current circuit
 		qubitList = []
 		#record the cnot map in the current circuit
 		CNOTList = []
-		code = ""
 
 		#fine the num in the str
 		mode = re.compile(r'\d+')
@@ -137,34 +137,13 @@ class IBMQX:
 		print(totalConnectivity)
 		#record the reason for why can't execute the code
 		reasonList = []
-		idBool = True
-		cnotBool = True
 
-		ibBool = self.__determindID(QASM,CNOTList,qubitList,totalConnectivity,reasonList)
-
-		#check the CNOT list whether satisfies the constraint of the connectivity
-		for index in range(0,len(CNOTList)):
-			if self.__checkConstraint(CNOTList[index],totalConnectivity):
-				continue
-			else:
-				#the cQ,tQ don't satisfy the constraint
-				if self.__adjustID(CNOTList,index,totalConnectivity,reasonList):
-					#successful adjust the CNOT[0 to index]
-					continue
-				else:
-					break
-
-		# canExecute = True
-		# if len(CNOTError) != 0:
-		# 	for item in CNOTError:
-		# 		cq = str(item[0])#the controlQubit
-		# 		tq = str(item[1])#the targetQubit			
-		# 		canExecute = False
-		# 		reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
-		# 		reasonList.append(reason)
+		idBool = self.__determindID(totalConnectivity,reasonList)
+		cnotBool = self.__adjustCNOT(0,totalConnectivity,reasonList)
 
 		#the circuit can be executed
 		if idBool & cnotBool:
+			code = ""
 			self.__reverseCNOT(QASM)
 			for line in QASM:
 				code += line
@@ -206,7 +185,7 @@ class IBMQX:
 	#determind whether the number of qubit in this circuit is more than the actual number
 	#if bigger, return False; else return True;
 	#if necessary, adjust the id of the qubit so that they are in line with the actual device
-	def __determindID(self,QASM,CNOTList,qubitList,totalConnectivity,reasonList):
+	def __determindID(self,totalConnectivity,reasonList):
 		#we assume that there is no qubit isolated in ibm chip!
 		useQubit = len(qubitList)
 		actualQubit = len(totalConnectivity)
@@ -247,15 +226,18 @@ class IBMQX:
 					QASM[l] = QASM[l].replace("[" + str(q) + "]","[" + str(qMap[int(q)]) + "]")
 		return True
 
-	#the first argument is the cnotList appeared in current circuit;
-	#the second argument is the iTH cont in cnotList which doesn't satisfy the constraint
-	#the third argument is the totalConnectivity
-	#the fourth argument is the reasonList for why the circuit can't be executed
-	def __adjustID(self,cl:list,i:int,tc:list,rl:list):
-		cQ = cl[i][0]
-		tQ = cl[i][1]
-		#递归函数？？
+	#check the CNOT list whether satisfies the constraint of the connectivity
+	#if satisfies or we can adjust the cnot to satisfy the constraint, return True;
+	#else return False and store the 'bad' cnot in reasonList 
+	def __adjustCNOT(self,iTH,totalConnectivity,reasonList):
+		#iTH: the iTH cnot in CNOTList, the 0 to (i-1)TH cnot satidfy the constraint
+		if self.__checkConstraint(CNOTList[iTH],totalConnectivity):
+			#satisfy the constraint
+			self.__adjustCNOT(QASM,CNOTList,iTH+1,totalConnectivity,reasonList)
 
+		#reason = "Can't utilize Q" + cq + " as the control Qubit and Q" + tq + " as the target Qubit!"
+		#reasonList.append(reason)
+		return True
 
 	#the the max neighbor in totalconnectivity
 	def __getMaxNeighbor(self,tc):
