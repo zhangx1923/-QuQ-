@@ -1,6 +1,7 @@
 #import the ibm code
 from IBMQuantumExperience import *
 from interactCfg import *
+from helperFunction import *
 from Error import *
 import os
 import sys
@@ -139,10 +140,10 @@ class IBMQX:
 					CNOTList.append([cQ,tQ])
 		
 		totalConnectivity = self.__getTotalConnectivity()
-		print(CNOTList)
-		print(qubitList)
-		print(self.connectivity)
-		print(totalConnectivity)
+		# print(CNOTList)
+		# print(qubitList)
+		# print(self.connectivity)
+		# print(totalConnectivity)
 		#record the reason for why can't execute the code
 		reasonList = []
 		cnotBool = True
@@ -241,7 +242,12 @@ class IBMQX:
 			reasonList.append(reason)
 			return False
 		totalCNOT = {}
+		cnotQList = []
 		for cnot in CNOTList:
+			if cnot[0] not in cnotQList:
+				cnotQList.append(cnot[0])
+			if cnot[1] not in cnotQList:
+				cnotQList.append(cnot[1])
 			if cnot[0] in totalCNOT:
 				totalCNOT[cnot[0]].append(cnot[1])
 			else:
@@ -250,34 +256,46 @@ class IBMQX:
 				totalCNOT[cnot[1]].append(cnot[0])
 			else:
 				totalCNOT[cnot[1]] = [cnot[0]]
-		print(totalCNOT)
 		probMap = []
 		i = -1
 		boolOnce = True
-		while boolOnce or (len(probMap[i]) == len(qubitList) and self.__checkMapConstraint(probMap[i],totalConnectivity)) == False:
-			boolOnce = False
+		print(cnotQList)
+		print(totalConnectivity)
+		print(totalCNOT)
+		while boolOnce or (len(probMap[i]) == len(cnotQList) and self.__checkMapConstraint(probMap[i],totalConnectivity)) == False:
 			tCcopy = totalConnectivity.copy()
 			mapDic = {}
-			for q in qubitList:
+			for qi in range(0,len(cnotQList)):
+				q = cnotQList[qi]
 				for tq in tCcopy:
 					if len(tCcopy[tq]) >= len(totalCNOT[q]):
-						b = True
-						for j in range(0,i+1):
-							if q in probMap[j] and tq == probMap[j][q]:
-								b = False
-								break
-						if b:
-							mapDic[q] = [tq]
-							del tCcopy[tq]
-						break
-			if len(mapDic) == 0:
-				break
+						# b = True
+						# mapDic[q] = [tq]
+						# for j in range(0,i+1):
+						# 	if dictInDict(probMap[j] , mapDic):
+						# 		b = False
+						# 		continue
+							
+						# if b or boolOnce:
+						# 	mapDic[q] = [tq]
+						# 	del tCcopy[tq]
+						# 	break
 			i += 1
+			boolOnce = False
 			probMap.append(mapDic)
+			if len(mapDic) == 0:
+				#there is no choice but break. It means that the connectivity can't be adjusted.
+				break
+			print(probMap)
 		print(probMap)
-
-
-
+		#get the last element of the ListMap
+		resProbMap = probMap[len(probMap)-1]
+		if len(resProbMap) == 0:
+			return False
+		else:
+			self.__changeQASMandCNOT(resProbMap)
+			print(QASM)
+			return True
 
 	#adjust the copy of CNOTList according to the map, and call the __checkAllConstraint
 	def __checkMapConstraint(self,maps,tc):
@@ -289,12 +307,14 @@ class IBMQX:
 		return self.__checkAllConstraint(cCNOTList,tc)
 
 
-	#the type of qMap is dict
+	#change the global parameter qubitList, QASM, CNOTList according to the qmap
 	def __changeQASMandCNOT(self,qMap):
-		#change the id to satisfy the requirement
+		#change the id in CNOTList to satisfy the requirement
 		for i in range(0,len(CNOTList)):
 			for j in range(0,len(CNOTList[i])):
 				CNOTList[i][j] = qMap[CNOTList[i][j]]
+
+		#change the QASM code
 		mode = re.compile(r'\d+')
 		for l in range(0,len(QASM)):
 			if l == 0:
@@ -303,6 +323,12 @@ class IBMQX:
 				qs = mode.findall(QASM[l])
 				for q in qs:
 					QASM[l] = QASM[l].replace("[" + str(q) + "]","[" + str(qMap[int(q)]) + "]")
+
+		#change the qubitList according to the qMap
+		for qi in range(0,len(qubitList)):
+			if qubitList[qi] in qMap:
+				qubitList[qi] = qMap[qubitList[qi]]
+
 
 	#the the max neighbor in totalconnectivity
 	def __getMaxNeighbor(self,tc):

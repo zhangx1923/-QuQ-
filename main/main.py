@@ -55,6 +55,9 @@ if __name__ == "__main__":
 		except KeyError:
 			print("KeyError: The input number is invalid! ")
 			sys.exit(0)
+		except IndexError:
+			print("IndexError: The input number is out of range!")
+			sys.exit(0)
 	print("The code you want to execute is :" + funFile + "." + funName)
 	import_string = "from " + funFile + " import " + funName.split("(")[0]
 	try:

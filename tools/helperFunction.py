@@ -99,3 +99,13 @@ def quickSortQubit(ql,low,high):
 	quickSortQubit(ql,j+1,high)
 	return ql
 	return True
+
+#judge whether d2 in d1
+def dictInDict(d1,d2):
+	bools = False
+	for k in d2:
+		if k in d1 and d2[k] == d1[k]:
+			bools = True
+		else:
+			bools = False
+	return bools
