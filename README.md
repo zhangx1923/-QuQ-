@@ -2,6 +2,7 @@
 **Founder:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Contributors:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Institution:** Key laboratory of CPS-DSC, Chongqing University
+<script type="text/javascript" async src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML"> </script>
 ## Introduction
 QuanSim is a platform of quantum programming, which consists of a quantum simulator and a suit of quantum program language. With the support of QuanSim, we can design and implement quantum algorithms and vertify the performance of algorithms. What's more, we can design quantum programming language on this platform. If you have any questions, please contact with zhang.x\@cqu.edu.cn.
 ## QuanSim
