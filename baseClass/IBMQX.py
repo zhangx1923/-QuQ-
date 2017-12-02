@@ -50,7 +50,15 @@ class IBMQX:
 				writeErrorMsg(ie.value,funName,line)
 		#get the connectivity map of the device according to the name of the device
 		try:
-			self.connectivity = tokenDic['connectivity'][self.device]
+			dic = tokenDic['connectivity'][self.device]
+			#change the key and item from str to int
+			self.connectivity = {}
+			for key in dic:
+				for item in dic[key]:
+					if int(key) in self.connectivity:
+						self.connectivity[int(key)].append(int(item))
+					else:
+						self.connectivity[int(key)] = [int(item)]
 		except KeyError as ke:
 			info = get_curl_info()
 			funName = info[0]
@@ -224,73 +232,61 @@ class IBMQX:
 	#if satisfies or we can adjust the cnot to satisfy the constraint, return True;
 	#else return False and store the 'bad' cnot in reasonList 
 	def __adjustCNOT(self,totalConnectivity,reasonList):
- 		cnotNum = len(CNOTList)
- 		ibmNum = 0
- 		for k in self.connectivity:
- 			ibmNum += len(self.connectivity[k])
- 		if cnotNum > ibmNum:
- 			reason = "There are " + str(cnotNum) + " different connectivities in this circuit, but only " + str(ibmNum) + " are allowd in IBM chip!"
- 			reasonList.append(reason)
- 			return False
- 		CNOTDic = {}
- 		for c in CNOTList:
- 			if c[0] in CNOTDic:
- 				CNOTDic[c[0]].append(c[1])
- 			else:
- 				CNOTDic[c[0]] = [c[1]]
- 		#{degree1:[qubit.ids,...],degree2:[qubit1.ids..]}
- 		degCNOTDic = {}
- 		degList = []
- 		for cQ in CNOTDic:
- 			degree = len(CNOTDic[cQ])
- 			degList.append(degree)
- 			if degree in degCNOTDic:
- 				degCNOTDic[degree].append(cQ)
- 			else:
- 				degCNOTDic[degree] = [cQ]
- 		degList.sort()
- 		degList.reverse()
-
- 		degtCNOTDic = {}
- 		degtList = []
- 		for tcQ in totalConnectivity:
- 			degree = len(totalConnectivity[tcQ])
- 			degtList.append(degree)
- 			if degree in degtCNOTDic:
- 				degtCNOTDic[degree].append(tcQ)
- 			else:
- 				degtCNOTDic[degree] = [tcQ]
- 		degtList.sort()
- 		degtList.reverse()
-
- 		if len(degList) > len(degtList):
- 			reason = "There are " + str(len(degList)) + " entangled with other qubits, but only " + str(len(degtList)) + " are allowd in IBM!"
- 			reasonList.append(reason)
- 			return False
-
- 		posMap = {}
- 		# for d in degList:
- 		# 	if d > max(degtList):
- 		# 		for q in degCNOTDic[d]:
- 		# 			reason = "Q" + str(q) + " can't connect with " + max(degtList) + " qubits!"
- 		# 			reasonList.append(reason)
- 		# 		return False
- 		# 	for dt in degtList:
- 		# 		if dt >= d:
- 		
- 		#degList,degCNOTDic,degtList,degtCNOTDic
- 		for iDT in range(0,len(degtList)):
- 			if degtList[iDT] >= degList[iDT]:
-				#set a map
- 				continue
- 					
+		cnotNum = len(CNOTList)
+		ibmNum = 0
+		for k in self.connectivity:
+			ibmNum += len(self.connectivity[k])
+		if cnotNum > ibmNum:
+			reason = "There are " + str(cnotNum) + " different connectivities in this circuit, but only " + str(ibmNum) + " are allowd in IBM chip!"
+			reasonList.append(reason)
+			return False
+		totalCNOT = {}
+		for cnot in CNOTList:
+			if cnot[0] in totalCNOT:
+				totalCNOT[cnot[0]].append(cnot[1])
+			else:
+				totalCNOT[cnot[0]] = [cnot[1]]
+			if cnot[1] in totalCNOT:
+				totalCNOT[cnot[1]].append(cnot[0])
+			else:
+				totalCNOT[cnot[1]] = [cnot[0]]
+		print(totalCNOT)
+		probMap = []
+		i = -1
+		boolOnce = True
+		while boolOnce or (len(probMap[i]) == len(qubitList) and self.__checkMapConstraint(probMap[i],totalConnectivity)) == False:
+			boolOnce = False
+			tCcopy = totalConnectivity.copy()
+			mapDic = {}
+			for q in qubitList:
+				for tq in tCcopy:
+					if len(tCcopy[tq]) >= len(totalCNOT[q]):
+						b = True
+						for j in range(0,i+1):
+							if q in probMap[j] and tq == probMap[j][q]:
+								b = False
+								break
+						if b:
+							mapDic[q] = [tq]
+							del tCcopy[tq]
+						break
+			if len(mapDic) == 0:
+				break
+			i += 1
+			probMap.append(mapDic)
+		print(probMap)
 
 
 
 
-
-				# reason = "Can't utilize Q" + str(CNOTList[iTH][0]) + " as the control Qubit and Q" + str(CNOTList[iTH][1]) + " as the target Qubit!"
-				# reasonList.append(reason)			
+	#adjust the copy of CNOTList according to the map, and call the __checkAllConstraint
+	def __checkMapConstraint(self,maps,tc):
+		if len(maps) != len(qubitList):
+			return False
+		cCNOTList = CNOTList.copy()
+		for i in range(0,len(cCNOTList)):
+			cCNOTList[i] = [maps[cCNOTList[i][0]][0],maps[cCNOTList[i][1]][0]]
+		return self.__checkAllConstraint(cCNOTList,tc)
 
 
 	#the type of qMap is dict
@@ -368,8 +364,8 @@ class IBMQX:
 				q = QASM[lineN].split(" ")[1]
 				strs = q.split(',')
 				#get the id of control-qubit and target-qubit
-				tQ = strs[1][2]
-				cQ = strs[0][2]
+				tQ = int(strs[1][2])
+				cQ = int(strs[0][2])
 				if cQ in self.connectivity and tQ in self.connectivity[cQ]:
 					pass
 				elif tQ in self.connectivity and cQ in self.connectivity[tQ]:				
