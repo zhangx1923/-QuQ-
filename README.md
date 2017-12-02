@@ -16,7 +16,7 @@ The relation of these data types are shown as follow.
 ![](https://raw.githubusercontent.com/zhangxin20121923/QuanSim/master/pic/QuanSim-datatype.png) 
 
 ### Quantum Gate
-For now, the supported quantum gates include: single-qubit gate (that is, H-gate, PauliX-gate, PauliY-gate, PauliZ-gate, S-gate, T-gate, Rx, Ry, Rz, $S^dagger$-gate and $T^dagger$-gate) and double-qubit gate (that is, CNOT). And it's clearly that the set of these gates are universal. <br/>
+For now, the supported quantum gates include: single-qubit gate (that is, H-gate, PauliX-gate, PauliY-gate, PauliZ-gate, S-gate, T-gate, Rx, Ry, Rz, <a href="https://www.codecogs.com/eqnedit.php?latex=S^dagger" target="_blank"><img src="https://latex.codecogs.com/gif.latex?S^dagger" title="S^dagger" /></a>-gate and $T^dagger$-gate) and double-qubit gate (that is, CNOT). And it's clearly that the set of these gates are universal. <br/>
 
 ## How to Use It
 ### Start
