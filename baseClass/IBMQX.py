@@ -280,9 +280,9 @@ class IBMQX:
  		
  		#degList,degCNOTDic,degtList,degtCNOTDic
  		for iDT in range(0,len(degtList)):
-			if degtList[iDT] >= degList[iDT]
-				set a map
-				continue
+ 			if degtList[iDT] >= degList[iDT]:
+				#set a map
+ 				continue
  					
 
 

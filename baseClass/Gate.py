@@ -8,6 +8,7 @@ from Circuit import Circuit
 from Error import *
 import numpy as np
 import math
+import cmath
 #get the info about the function name and the line number
 def get_curl_info():
 	try:
@@ -367,6 +368,56 @@ def Td(q:Qubit):
 		result = matrixCompution(Td,q.getMatrix()).tolist()
 		q.setMatrix(result)		
 	return q
+	
+#the following gates aren't allowd in QASM and ibm quantum chip for now
+# #theta is expressed in radian
+# def Rx(q:Qubit,theta):
+# 	checkType([q])
+# 	circuit = recordSingleExecution("Rx",q)
+# 	if circuit == None:
+# 		return False
+# 	qs = q.entanglement
+# 	Rx = [[math.cos(theta/2),math.sin(theta/2)*-1j],[math.sin(theta/2)*-1j,math.cos(theta/2)]]
+# 	noise([q],Rx)
+# 	if qs != None:
+# 		q = handleQubits(Rx,q)
+# 	else:
+# 		result = matrixCompution(Rx,q.getMatrix()).tolist()
+# 		q.setMatrix(result)
+# 	return q
+
+# #theta is expressed in radian
+# def Ry(q:Qubit,theta):
+# 	checkType([q])
+# 	circuit = recordSingleExecution("Ry",q)
+# 	if circuit == None:
+# 		return False
+# 	qs = q.entanglement
+# 	Ry = [[math.cos(theta/2),-math.sin(theta/2)],[math.sin(theta/2,math.cos(theta/2))]]
+# 	noise([q],Ry)
+# 	if qs != None:
+# 		q = handleQubits(Ry,q)
+# 	else:
+# 		result = matrixCompution(Ry,q.getMatrix()).tolist()
+# 		q.setMatrix(result)
+# 	return q
+
+# #theta is expressed in radian
+# def Rz(q:Qubit,theta):
+# 	checkType([q])
+# 	circuit = recordSingleExecution("Rz",q)
+# 	if circuit == None:
+# 		return False
+# 	qs = q.entanglement
+# 	pows = (-1)*theta/2j
+# 	Rz = [[cmath.exp(-pows),0],[0,cmath.exp(pows)]]
+# 	noise([q],Rz)
+# 	if qs != None:
+# 		q = handleQubits(Rz,q)
+# 	else:
+# 		result = matrixCompution(Rz,q.getMatrix()).tolist()
+# 		q.setMatrix(result)
+# 	return q
 
 #return a Qubits, which has two entanglement qubit
 #the two qubit can be independent qubits, or one of them are a part of engtanlement 
