@@ -2,7 +2,6 @@
 **Founder:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Contributors:** [@quantumnewbie](https://github.com/zhangxin20121923)  <br/>
 **Institution:** Key laboratory of CPS-DSC, Chongqing University
-<script type="text/javascript" async src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML"> </script>
 ## Introduction
 QuanSim is a platform of quantum programming, which consists of a quantum simulator and a suit of quantum program language. With the support of QuanSim, we can design and implement quantum algorithms and vertify the performance of algorithms. What's more, we can design quantum programming language on this platform. If you have any questions, please contact with zhang.x\@cqu.edu.cn.
 ## QuanSim
@@ -17,7 +16,7 @@ The relation of these data types are shown as follow.
 ![](https://raw.githubusercontent.com/zhangxin20121923/QuanSim/master/pic/QuanSim-datatype.png) 
 
 ### Quantum Gate
-For now, the supported quantum gates include: single-qubit gate (that is, H-gate, PauliX-gate, PauliY-gate, PauliZ-gate, S-gate, T-gate, Rx, Ry, Rz, <a href="https://www.codecogs.com/eqnedit.php?latex=S^dagger" target="_blank"><img src="https://latex.codecogs.com/gif.latex?S^dagger" title="S^dagger" /></a>-gate and $T^dagger$-gate) and double-qubit gate (that is, CNOT). And it's clearly that the set of these gates are universal. <br/>
+For now, the supported quantum gates include: single-qubit gate (that is, H-gate, PauliX-gate, PauliY-gate, PauliZ-gate, S-gate, T-gate, Rx, Ry, Rz, $S^dagger$-gate and $T^dagger$-gate) and double-qubit gate (that is, CNOT). And it's clearly that the set of these gates are universal. <br/>
 
 ## How to Use It
 ### Start
