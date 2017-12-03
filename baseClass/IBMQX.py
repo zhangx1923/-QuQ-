@@ -140,10 +140,7 @@ class IBMQX:
 					CNOTList.append([cQ,tQ])
 		
 		totalConnectivity = self.__getTotalConnectivity()
-		# print(CNOTList)
-		# print(qubitList)
-		# print(self.connectivity)
-		# print(totalConnectivity)
+
 		#record the reason for why can't execute the code
 		reasonList = []
 		cnotBool = True
@@ -256,46 +253,66 @@ class IBMQX:
 				totalCNOT[cnot[1]].append(cnot[0])
 			else:
 				totalCNOT[cnot[1]] = [cnot[0]]
-		probMap = []
-		i = -1
-		boolOnce = True
-		print(cnotQList)
-		print(totalConnectivity)
-		print(totalCNOT)
-		while boolOnce or (len(probMap[i]) == len(cnotQList) and self.__checkMapConstraint(probMap[i],totalConnectivity)) == False:
-			tCcopy = totalConnectivity.copy()
-			mapDic = {}
-			for qi in range(0,len(cnotQList)):
-				q = cnotQList[qi]
-				for tq in tCcopy:
-					if len(tCcopy[tq]) >= len(totalCNOT[q]):
-						# b = True
-						# mapDic[q] = [tq]
-						# for j in range(0,i+1):
-						# 	if dictInDict(probMap[j] , mapDic):
-						# 		b = False
-						# 		continue
-							
-						# if b or boolOnce:
-						# 	mapDic[q] = [tq]
-						# 	del tCcopy[tq]
-						# 	break
-			i += 1
-			boolOnce = False
-			probMap.append(mapDic)
-			if len(mapDic) == 0:
-				#there is no choice but break. It means that the connectivity can't be adjusted.
-				break
-			print(probMap)
-		print(probMap)
-		#get the last element of the ListMap
-		resProbMap = probMap[len(probMap)-1]
-		if len(resProbMap) == 0:
-			return False
-		else:
-			self.__changeQASMandCNOT(resProbMap)
-			print(QASM)
+		choiceList = []
+		for cq in totalCNOT:
+			tmp = []
+			for tcq in totalConnectivity:
+				if len(totalConnectivity[tcq]) >= len(totalCNOT[cq]):
+					tmp.append(tcq)
+			choiceList.append(tmp)
+		#the solution space is choiceList[]
+		solution = [-1] * len(cnotQList)
+		newMaps = self.__backTrace(0,len(cnotQList),solution,totalConnectivity,choiceList,cnotQList)
+		if newMaps != None:
+			self.__changeQASMandCNOT(newMaps)
 			return True
+		else:
+			reason = "Can't adjust the connectivity in your circuit to satisfy the requirement of the IBM chip!"
+			reasonList.append(reason)
+			return False
+	def __backTrace(self,depth,N,solution,tc,choiceList,cnotQList):
+		if depth >= N:
+			dic = self.__getQubitMap(cnotQList,solution,tc)
+			if self.__checkMapConstraint(dic,tc):
+				return dic
+			else:
+				return None
+		else:
+			for i in range(0,len(choiceList[depth])):
+				if choiceList[depth][i] in solution[0:depth+1]:
+					continue
+				else:
+					solution[depth] = choiceList[depth][i]
+					res = self.__backTrace(depth+1,N,solution,tc,choiceList,cnotQList)
+					if res != None:
+						return res
+
+	#use two list to construct a map: the key is from the first list and the value is from the second list
+	#note: the dimension of l1 and l2 must be same with each other
+	#and if there is qubits in qubitList but not in CNOTList, we should append the item in the dict
+	def __getQubitMap(self,l1,l2,tc):
+		if len(l1) != len(l2):
+			try:
+				raise IBMError("The dimension of the Qubit list should be same with the dimension of the solution!")
+			except IBMError as ie:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg(ie.value,funName,line)
+		dic = {}
+		availalbleQ = [i for i in range(0,len(tc))]
+
+		for index in range(0,len(l1)):
+			dic[l1[index]] = l2[index]
+			availalbleQ.remove(l2[index])
+
+		for q in qubitList:
+			if q in dic:
+				continue
+			else:
+				dic[q] = availalbleQ[0]
+				del availalbleQ[0]
+		return dic
 
 	#adjust the copy of CNOTList according to the map, and call the __checkAllConstraint
 	def __checkMapConstraint(self,maps,tc):
@@ -303,7 +320,7 @@ class IBMQX:
 			return False
 		cCNOTList = CNOTList.copy()
 		for i in range(0,len(cCNOTList)):
-			cCNOTList[i] = [maps[cCNOTList[i][0]][0],maps[cCNOTList[i][1]][0]]
+			cCNOTList[i] = [maps[cCNOTList[i][0]],maps[cCNOTList[i][1]]]
 		return self.__checkAllConstraint(cCNOTList,tc)
 
 
@@ -321,14 +338,26 @@ class IBMQX:
 				continue
 			else:
 				qs = mode.findall(QASM[l])
-				for q in qs:
-					QASM[l] = QASM[l].replace("[" + str(q) + "]","[" + str(qMap[int(q)]) + "]")
+				if len(qs) == 1:
+					#single-qubit gate
+					QASM[l] = QASM[l].replace("[" + str(qs[0]) + "]","[" + str(qMap[int(qs[0])]) + "]")
+				elif len(qs) == 2 and qs[0] == qs[1]:
+					#measurement 
+					QASM[l] = QASM[l].replace("[" + str(qs[0]) + "]","[" + str(qMap[int(qs[0])]) + "]")
+				else:
+					#multi-qubits gate
+					newQASM = QASM[l].split(" ")[0] + " "
+					qubit = QASM[l].split(" ")[1].split(",")
+					for qi in range(0,len(qs)):
+						newQASM += qubit[qi].replace("[" + str(qs[qi]) + "]","[" + str(qMap[int(qs[qi])]) + "]")
+						if qi != len(qs)-1:
+							newQASM += ","
+					QASM[l] = newQASM
 
 		#change the qubitList according to the qMap
 		for qi in range(0,len(qubitList)):
 			if qubitList[qi] in qMap:
 				qubitList[qi] = qMap[qubitList[qi]]
-
 
 	#the the max neighbor in totalconnectivity
 	def __getMaxNeighbor(self,tc):

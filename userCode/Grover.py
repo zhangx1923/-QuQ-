@@ -36,14 +36,14 @@ def grover():
 	times = executeTimes(totalElement)
 	for i in range(0,times):
 		G(qList)
-
+	q1 = Qubit(1)
+	q2 = Qubit(2)
+	CNOT(q1,q2)
+	CNOT(q2,qList[1])
+	CNOT(q2,qList[2])
 	# qList[N-1] = qif(qList[N-1])
 	# if qList[N-1].value == 1:
 	# 	pass
-	q1 = Qubit(3)
-	q2 = Qubit(4)
-	CNOT(q1,qList[1])
-	X(q2)
 	#measure the qubits
 	for q in actualQubit:
 		qList[q] = M(qList[q])
