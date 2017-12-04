@@ -323,7 +323,6 @@ class IBMQX:
 			cCNOTList[i] = [maps[cCNOTList[i][0]],maps[cCNOTList[i][1]]]
 		return self.__checkAllConstraint(cCNOTList,tc)
 
-
 	#change the global parameter qubitList, QASM, CNOTList according to the qmap
 	def __changeQASMandCNOT(self,qMap):
 		#change the id in CNOTList to satisfy the requirement
@@ -434,7 +433,6 @@ class IBMQX:
 				else:
 					pass
 			lineN += 1 
-
 
 	#execute the code
 	def executeQASM(self,experimentName = None):

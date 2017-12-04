@@ -13,7 +13,7 @@ def grover():
 	c = Circuit()
 	qList = []
 	for i in range(0,N):
-		q = Qubit(i*10)
+		q = Qubit()
 		qList.append(q)
 	#there are three kinds of qubits:
 	#1.actual qubit:qList[0,1,3,5,...]
