@@ -10,5 +10,6 @@ from Qubit import *
 from helperFunction import *
 from Circuit import Circuit
 from Gate import *
+from ControlFlow import *
 #from IBMQX import *
 PI = math.pi

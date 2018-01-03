@@ -15,6 +15,12 @@ def grover():
 	for i in range(0,N):
 		q = Qubit()
 		qList.append(q)
+
+	q = Qubit()
+	with DMif([qList[0],qList[1]],[0,0]) as dmo:
+		dmo.X(q)
+		#print(dmo.v)
+
 	#there are three kinds of qubits:
 	#1.actual qubit:qList[0,1,3,5,...]
 	#2.auxiliary qubit:qList[2,4,6,...]
@@ -36,11 +42,6 @@ def grover():
 	times = executeTimes(totalElement)
 	for i in range(0,times):
 		G(qList)
-	q1 = Qubit(1)
-	q2 = Qubit(2)
-	CNOT(q1,q2)
-	CNOT(q2,qList[1])
-	CNOT(q2,qList[2])
 	# qList[N-1] = qif(qList[N-1])
 	# if qList[N-1].value == 1:
 	# 	pass

@@ -109,3 +109,44 @@ def dictInDict(d1,d2):
 		else:
 			bools = False
 	return bools
+
+#construct the partitioned matrix
+def constructPM(m1,m2):
+	#use the m1 and m2 as the diagonal element 
+	m1_rows = len(m1)
+	m1_cols = len(m1[0])
+	m2_rows = len(m2)
+	m2_cols = len(m2[0])
+	mNew = []
+	mNew_cols = m1_cols * m2_cols
+	mNew_rows = m1_rows * m2_rows
+	for i in range(0,m1_rows):
+		for l in range(0,m2_rows):
+			tmp = []
+			for j in range(0,m1_cols):
+				for k in range(0,m2_cols):
+					tmp.append(m1[i][j] * m2[l][k])
+			mNew.append(tmp)
+	return mNew
+
+#sort the list1 according to the list2
+def adjustOrder(list1:list,list2:list):
+	for i in range(1,len(list2)):
+		tmp = i-1
+		while tmp >=0:
+			if list2[tmp] > list2[i]:
+				list2[i],list2[tmp] = list2[tmp],list2[i]
+				list1[i],list1[tmp] = list1[tmp],list1[i]
+				i = tmp
+			tmp -= 1
+	return True
+
+#judge whether there is repeating element in the list.
+#If two elements have the same address, then we say that the two elements are repeating elements.
+#if there is repeating elements, then return True; else return False
+def repeatElement(lt:list):
+	for i in range(0,len(lt)):
+		for j in range(i+1,len(lt)):
+			if id(lt[i]) == id(lt[j]):
+				return True
+	return False
