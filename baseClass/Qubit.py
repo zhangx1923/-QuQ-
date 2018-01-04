@@ -229,7 +229,7 @@ class Qubits(BaseQubit):
 		#the two qubits must be not in the entanglement
 		if q1.entanglement != None or q2.entanglement != None:
 			try:
-				raise ValueError("the qubits must be not in the entanglement")
+				raise ValueError("The qubits must not be in the entanglement!")
 			except ValueError as ve:
 				info = get_curl_info()
 				funName = info[0]

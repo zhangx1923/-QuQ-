@@ -16,15 +16,10 @@ def grover():
 		q = Qubit()
 		qList.append(q)
 
-	q = Qubit()
-	with DMif([qList[0],qList[1]],[0,0]) as dmo:
-		dmo.X(q)
-		#print(dmo.v)
-
-	#there are three kinds of qubits:
-	#1.actual qubit:qList[0,1,3,5,...]
-	#2.auxiliary qubit:qList[2,4,6,...]
-	#3.sign qubit: the last qubit in the list
+	# there are three kinds of qubits:
+	# 1.actual qubit:qList[0,1,3,5,...]
+	# 2.auxiliary qubit:qList[2,4,6,...]
+	# 3.sign qubit: the last qubit in the list
 	actualQubit = []
 	auxiliaryQubit = []
 	signQubit = []

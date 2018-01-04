@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from baseGate import *
-
+from Gate import *
+import copy
 #only X,Y,Z,I,H,S,Sd,T,Td,CNOT is allowed
 
 #delay measure opertor class
@@ -19,10 +20,12 @@ class DMO:
 				value = vl[i]
 			if value == 1:
 				exp = n-1-i
-				self.position += 2 ** exp
+				self.DMOposition += 2 ** exp
 		self.DMOv = tmp
 		#storage the control-qubit list
 		self.DMOql = ql
+		self.__setControlGName(vl)
+		self.split = SplitGate()
 
 	#get the info about the function name and the line number
 	def get_curl_info(self):
@@ -32,12 +35,15 @@ class DMO:
 			f = sys.exc_info()[2].tb_frame.f_back
 		return [f.f_code.co_name, f.f_lineno]
 
+	#construct the matrix of the multi-controlled gate
 	def __constructM(self,v:list):
+		mx = copy.deepcopy(self.DMOv)
 		try:
-			self.v[self.DMOposition][self.DMOposition] = X[0][0]
-			self.v[self.DMOposition][self.DMOposition+1] = X[0][1]
-			self.v[self.DMOposition+1][self.DMOposition] = X[1][0]
-			self.v[self.DMOposition+1][self.DMOposition+1] = X[1][1]
+			mx[self.DMOposition][self.DMOposition] = v[0][0]
+			mx[self.DMOposition][self.DMOposition+1] = v[0][1]
+			mx[self.DMOposition+1][self.DMOposition] = v[1][0]
+			mx[self.DMOposition+1][self.DMOposition+1] = v[1][1]
+			return mx
 		except IndexError:
 			info = self.get_curl_info()
 			funName = info[0]
@@ -45,15 +51,71 @@ class DMO:
 			writeErrorMsg("The matrix of the controlled-operator doesn't \
 				have line" + str(self.DMOposition) + " or line" + str(self.DMOposition+1) + "!",funName,line)	
 
+	#set the name of the control qubit gate:if there are 3 qubit in self.DMOql and vl = [1,0,1],
+	#then the full name should be c1-c0-c1-SingleQubitGate. This function should set self.cgn = c1-c0-c1
+	def __setControlGName(self,vl:list):
+		name = ""
+		for i in range(0,len(self.DMOql)):
+			name += "c"
+			if len(vl) == 1:
+				j = 0
+			else:
+				j = i
+			if vl[j] == 0:
+				name += "0"
+			else:
+				name += "1"
+			name += "-"
+		self.cgn = name[0:len(name)-1]
+
+	#get the full name of the multi-controlled gate
+	def __getFullGName(self,gn:str):
+		return (self.cgn + "-" + gn)
+
 	def X(self,q:Qubit):
+		ql = self.DMOql.copy()
+		#CNOT gate
+		if len(ql) == 1 and self.DMOv[0] == 1:
+			return CNOT(ql[0],q)
+
 		X = [[0,1],[1,0]]
-		self.__constructM(X)
-		self.DMOql.append(q)
-		gate = Gate(self.DMOql,self.DMOv,"c-X")
+		cG = self.__constructM(X)
+		ql.append(q)
+		fullGName = self.__getFullGName('X')
+		#append the multi-controlled gate to Dict "allowGate", which is defined in baseGate.py
+		allowGate[fullGName] = len(ql)
+		#init the Gate instance
+		gate = Gate(ql,cG,fullGName)
+		c = gate.recordmultiExecution()
+
+		return self.splitAndExe(ql,fullGName)
+
+	def CNOT(self,q1:Qubit,q2:Qubit):
+		ql = self.DMOql.copy()
+		#convert the CNOT gate to c1-X, then the code is same with the DMO.singleQubit
+		return True
+
+
+	#split the multi-controlled gate to the gate set(H,Z,X,Y,S,Sd,T,Td,CNOT), and Execute the gate sequence
+	#the paremeter 'gn' stands for Full Multi-Controlled Gate Name
+	#and the parameter 'ql' stands for the qubit list
+	def splitAndExe(self,ql:list,gn:str):
+		qGL = gn.split("-")
+		N = len(qGL)
 		
-		#return gate.singleOperator()
-		
-	#多种受控门分为两种情况：1.执行的时候按照基本的构造方法将现有的进行拆分，再执行
-	#2.在导出线路图的时候，对于多种受控门，直接绘制
+		actualN = 2 * N - 3
+		#construct the c1-c1-c1-c1...-U should with the help of auxiliary qubits
+		#and the initial state of all the auxiliary qubits should be |0>
+		for k in range(0,actualN - N):
+			auxQ = Qubit()
+			position = 2 * (k+1)
+			ql.insert(position,auxQ)
+		for j in range(2,actualN,2):
+			Toffoli(ql[j-2],ql[j-1],ql[j])
+
+		#return the target qubit 	
+		return ql[len(ql)-1]
+
+
 	
 		

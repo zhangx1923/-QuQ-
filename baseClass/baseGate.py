@@ -33,9 +33,9 @@ class Gate:
 			self.ql = ql
 		
 	
-	def singleOperator(self):
+	def singleOperator(self,record = True):
 		q = self.ql[0]
-		circuit = self.__recordSingleExecution(self.gateName,q)
+		circuit = self.recordSingleExecution(record)
 		if circuit == None:
 			return False
 		qs = q.entanglement
@@ -49,8 +49,8 @@ class Gate:
 			result = self.__matrixCompution(v,q.getMatrix()).tolist()
 			q.setMatrix(result)		
 		return q
-
-	def CNOTOperator(self):
+	
+	def CNOTOperator(self,record = True):
 		q1 = self.ql[0]
 		q2 = self.ql[1]
 		#q1 is same with q2
@@ -59,8 +59,7 @@ class Gate:
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("The control-qubit can't be same with the target-qubit of CNOT gate!",funName,line)	
-		
-		circuit = self.__recordmultiExecution(self.gateName,self.ql)
+		circuit = self.recordmultiExecution(record)
 		if circuit == None:
 			return False
 		noise = Noise(self.ql)
@@ -130,7 +129,7 @@ class Gate:
 		#just store the M gate in circuit.qubitExecuteList, 
 		#the measurement will actually occur when function circuit.execute is called  
 		if auQubit == False:
-			circuit = self.__recordSingleExecution(self.gateName,q)
+			circuit = self.recordSingleExecution()
 			#store the measurement qubit in the self.measureList
 			circuit.measureList.append(q)
 			if circuit == None:
@@ -280,12 +279,15 @@ class Gate:
 	#or the current qubit is not stored in the executeList
 	#1.recordSingleExecution: record single gate, i.e. X,Y..
 	#2.recordMultiExecution:record multi gate, i.e. CNOT..
-	def __recordSingleExecution(self,gate:str,q:Qubit):
+	def recordSingleExecution(self,record = True):
+		q = self.ql[0]
 		circuit = checkEnvironment()
+		if record == False:
+			return circuit
 		#record the execution according to the qubit.ids
 		ids = q.ids
 		exeRecord = circuit.qubitExecuteList
-		strs = gate + " " + str(ids)
+		strs = self.gateName + " " + str(ids)
 		try:
 			#a qubit can only be measured once, and once the qubit was measured, you can't act any gate on it.
 			if "M "+str(ids) in exeRecord[q]:
@@ -304,30 +306,34 @@ class Gate:
 			writeErrorMsg("the current qubit is not stored in the execute list, please check your code!",funName,line)
 		return circuit
 
-	def __recordmultiExecution(self,gate:str,qs:list):
+	def recordmultiExecution(self,record = True):
 		circuit = checkEnvironment()
+		if record == False:
+			return circuit
 		if circuit != None:
 			exeRecord = circuit.qubitExecuteList
-			strs = gate + " "
+			strs = self.gateName + " "
 			maxLength = 0
 			#make up the multi gate string
-			for i in range(0,len(qs)):
-				ids = qs[i].ids
+			for i in range(0,len(self.ql)):
+				ids = self.ql[i].ids
 				try:
-					length = len(exeRecord[qs[i]])
+					length = len(exeRecord[self.ql[i]])
 				except KeyError as ke:
 					info = self.get_curl_info()
 					funName = info[0]
 					line = info[1]
-					writeErrorMsg("the current qubit is not stored in the execute list, please check your code",funName,line)			
+					print(exeRecord)
+					print(self.ql[i])
+					writeErrorMsg("Qubit: q" + str(self.ql[i].ids) + " is not stored in the execute list, please check your code!",funName,line)			
 				if maxLength < length:
 					maxLength = length
 				strs += str(ids)
-				if i != len(qs) - 1:
+				if i != len(self.ql) - 1:
 					strs += ","
 			#add the multi gate string to the execution of each qubit; 
 			#and add NULL to the shorter execution to occupy the position so that we can draw the circuit easily
-			for item in qs:
+			for item in self.ql:
 				while len(exeRecord[item]) < maxLength:
 					tmpStr = "NULL " + str(item.ids)
 					exeRecord[item].append(tmpStr)
@@ -426,3 +432,7 @@ class Noise:
 					else:
 						gate[i][j] = gate[i][j] * (1 - self.error)
 			return gate
+
+
+
+

@@ -630,8 +630,8 @@ class Circuit:
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
 		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"
 		msg += "executive Mode: " + self.mode + "\n"
-		msg += "single-qubit error: " + singleError + "\n"
-		msg += "double-qubit error: " + doubleError + "\n"	
+		msg += "single-qubit error: " + singleError + " (AVG)\n"
+		msg += "double-qubit error: " + doubleError + " (AVG)\n"	
 		msg += "result: " + "\n"
 		for i in range(0,len(stateList)):
 			msg += "        |" + str(stateList[i]) + ">----" + "%.2f%%"%(probList[i] * 100) + "\n"
