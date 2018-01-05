@@ -6,6 +6,8 @@ from Error import *
 import os
 import sys
 import re
+from Gate import SplitGate
+
 #get the info about the function name and the line number
 def get_curl_info():
 	try:
@@ -13,6 +15,20 @@ def get_curl_info():
 	except:
 		f = sys.exc_info()[2].tb_frame.f_back
 	return [f.f_code.co_name, f.f_lineno]
+
+qasmDic = {
+	"I":"id",
+	"X":"x",
+	"Y":"y",
+	"Z":"z",
+	"H":"h",
+	"S":"s",
+	"T":"t",
+	"CNOT":"cx",
+	"Td":"tdg",
+	"Sd":"sdg",
+	"M":"measure"
+}
 
 #the max execute times is made by IBM stuff
 MAXTIMES = 8192
@@ -71,7 +87,7 @@ class IBMQX:
 			try:
 				os.makedirs(circuit.urls + "/IBMQX") 
 			except OSError:
-				info = helperFunction.get_curl_info()
+				info = get_curl_info()
 				funName = info[0]
 				line = info[1]
 				interactCfg.writeErrorMsg("Can't create the new folder 'IBMQX'!",funName,line)	
@@ -91,31 +107,97 @@ class IBMQX:
 				writeErrorMsg("Can't get the key:'name' in the backend information!".funName,line)
 		return result
 
-	#adjust the QASM code, which is producted by circuit.QASM(), so that the qubits can satisfy the constraint
-	#of the CNOT connectivity
-	def __canExecute(self):
-		print("Optimizing the QASM-code, please wait for a while...")
+	#translate the QASM to Open-QASM
+	#the parameter 'c' is the current Circuit instance
+	def __translateQASM(self,c):
+		global QASM
 		#the code has been store in circuit.url/QASM.txt
-		circuit = checkEnvironment()
-		if circuit == None:
-			return None
-		codeLocation = circuit.urls + "/QASM.txt"
+		codeLocation = c.urls + "/QASM.txt"
 		#this function must be called after circuit.execute()
 		if os.path.exists(codeLocation) == False:
 			info = get_curl_info()
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("The QASM code hasn't been generated, please check your code!",funName,line)	
-		file = open(codeLocation)
-		global QASM,qubitList,CNOTList
-		QASM = file.readlines()	
+		file = open(codeLocation)	
+		code = file.readlines()	
 		file.close()
+
+		for item in code:
+			tmpCode = ""
+			tmp = item.split(" ")
+			gate = tmp[0]
+			#if the gate is M: M q[0] -> c[0], we have to get the tmp[1:len]
+			qubitL = tmp[1:len(tmp)]
+			sg = SplitGate()
+			if gate in qasmDic:
+				gate = qasmDic[gate]
+				tmpCode += gate + " "
+				for q in qubitL:
+					tmpCode += q
+				QASM.append(tmpCode)
+			else:
+				tmpQASM = ""
+				#the gate should be splited into components
+				if re.search(r'^(c\d-).$',gate) != None :
+					tmpQASM = sg.CU()
+				elif gate == "Toffoli":
+					tmpQASM = sg.Toffoli()
+				elif re.search(r'^(c\d-).$',gate) != None:
+					tmpQASM = sg.MCU()
+				else:
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]
+					writeErrorMsg("Only MCU is allowed! CMU and MCMU will be added if needed!",funName,line)					
+				itemList = tmpQASM.split(";")
+				#the gate can't be M
+				tmpQL = qubitL[0]
+				#only multi-controlled qubit with one-target qubit gate is allowed for now
+				#the one-control qubit with multi-target qubits gate
+				#and multi-controlled qubit with multi-target qubit gate will be added in the future if needed
+				qubits = tmpQL.split(";")[0].split("\n")[0].split(",")
+				controlQL = qubits[0:len(qubits)-1]
+				targetQL = qubits[len(qubits)-1:len(qubits)]
+				for item in itemList:
+					tmpCode = ""
+					gate = qasmDic[item.split(" ")[0]]
+					tmpCode += gate + " "
+					tmp = item.split(" ")[1].split(",")
+					for t in range(0,len(tmp)):
+						qType = tmp[t].split("-")[0]
+						qID = tmp[t].split("-")[1]
+						actQ = ""
+						if qType == 'cq':
+							actQ = controlQL[int(qID)]
+						else:
+							actQ = targetQL[int(qID)]
+						tmpCode += actQ
+						if t == len(tmp) - 1:
+							tmpCode += ";\n"
+						else:
+							tmpCode += ","
+					QASM.append(tmpCode)
+
+
+	#adjust the QASM code, which is producted by circuit.QASM(), so that the qubits can satisfy the constraint
+	#of the CNOT connectivity
+	def __canExecute(self):
+		circuit = checkEnvironment()
+		if circuit == None:
+			return None
+		global QASM,qubitList,CNOTList
+		QASM = []
+		print("Translating the QASM to Open-QASM...")
+		self.__translateQASM(circuit)
+		print("Optimizing the Open-QASM code, please wait for a while...")
+
 		#record the ids of qubits in the current circuit
 		qubitList = []
 		#record the cnot map in the current circuit
 		CNOTList = []
 
-		#fine the num in the str
+		#find the num in the str
 		mode = re.compile(r'\d+')
 		#analyse the QASM code
 		for l in range(0,len(QASM)):
@@ -154,19 +236,20 @@ class IBMQX:
 
 		#the circuit can be executed
 		if idBool & cnotBool:
-			code = ""
-			self.__reverseCNOT(QASM)
+			numQ = str(len(totalConnectivity))
+			code = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + numQ + '];creg c[' + numQ + '];\n'
+			self.__reverseCNOT()
 			for line in QASM:
 				code += line
 			try:
-				file = open(circuit.urls + "/IBMQX/QASM-modified.txt","w")
+				file = open(circuit.urls + "/IBMQX/Open-QASM.txt","w")
 				file.write(code)	
 				file.close()	
 			except IOError:
 				info = get_curl_info()
 				funName = info[0]
 				line = info[1]
-				writeErrorMsg("Can't write QASM code to QASM-modified.txt!",funName,line)		
+				writeErrorMsg("Can't write QASM code to Open-QASM.txt!",funName,line)		
 			return code
 
 		#can't execute the circuit
@@ -325,6 +408,7 @@ class IBMQX:
 
 	#change the global parameter qubitList, QASM, CNOTList according to the qmap
 	def __changeQASMandCNOT(self,qMap):
+		global QASM
 		#change the id in CNOTList to satisfy the requirement
 		for i in range(0,len(CNOTList)):
 			for j in range(0,len(CNOTList[i])):
@@ -411,7 +495,7 @@ class IBMQX:
 		return legalCList
 
 	#modify the qasm code by adding H to reverse the current CNOT
-	def __reverseCNOT(self,QASM):
+	def __reverseCNOT(self):
 		lineN = 0
 		while lineN < len(QASM):
 			if 'cx' in QASM[lineN]:
@@ -420,9 +504,7 @@ class IBMQX:
 				#get the id of control-qubit and target-qubit
 				tQ = int(strs[1][2])
 				cQ = int(strs[0][2])
-				if cQ in self.connectivity and tQ in self.connectivity[cQ]:
-					pass
-				elif tQ in self.connectivity and cQ in self.connectivity[tQ]:				
+				if tQ in self.connectivity and cQ in self.connectivity[tQ]:				
 					#add H gate to satisfy the constraint
 					hExternal = "h q[" + str(cQ) + "];\r\nh q[" + str(tQ) + "];\r\n"					
 					gateStr = "cx q[" + str(cQ) + "],q[" + str(tQ) + "];"
@@ -430,8 +512,6 @@ class IBMQX:
 						QASM.insert(lineN,hExternal)
 						QASM[lineN+1] = "cx q[" + str(tQ) + "],q[" + str(cQ) + "];\r\n"
 						QASM.insert(lineN+2,hExternal)
-				else:
-					pass
 			lineN += 1 
 
 	#execute the code

@@ -19,31 +19,19 @@ import csv
 
 styleDic = {
 	"I":[" I ","C5"],
-	"X":["X","C1"],
+	"X":["X","C0"],
 	"Y":["Y","C1"],
 	"Z":["Z","C1"],
 	"H":["H","C2"],
 	"S":["S","C8"],
 	"T":["T","C4"],
-	"CNOT":["+","C0"],
+	#"CNOT":["+","C0"],
 	"Td":["Td","C6"],
 	"Sd":["Sd","C7"],
 	"M":["M","C3"],
-	"qif":["qif","C3"]
-}
-qasmDic = {
-	"I":"id",
-	"X":"x",
-	"Y":"y",
-	"Z":"z",
-	"H":"h",
-	"S":"s",
-	"T":"t",
-	"CNOT":"cx",
-	"Td":"tdg",
-	"Sd":"sdg",
-	"M":"measure",
-	"qif":"qif"
+	"qif":["qif","C3"],
+	#"Toffoli":["+","C0"],
+	#multi-controlled gate
 }
 
 ResLocation = "../results/"
@@ -160,20 +148,37 @@ class Circuit:
 					if gate == 'NULL':
 						x_position += 5 / factor
 						continue
-					#adjust the length of the gate string
-					try:
+					#it means that the gate is a single-qubit gate
+					if gate in styleDic:
 						gateName = styleDic[gate][0]
 						gateColor = styleDic[gate][1]
-					except KeyError as ke:
-						info = helperFunction.get_curl_info()
-						funName = info[0]
-						line = info[1]
-						interactCfg.writeErrorMsg("key " + str(ke) + " is not in Dict:styleDic!",funName,line)
-					if gateName == "+":
-						style = "circle"
+						ann = Ax.annotate(gateName,
+							xy=(1, 20), xycoords='data',
+							xytext=(x_position, j*partition), textcoords='data',color='w',
+							size=12/factor, va="center", ha="center",
+							bbox=dict(boxstyle=style, fc=gateColor,pad=0.3,ec=gateColor),
+							)
+					#it means that the gate is a MCU
+					else:
+						if gate == "Toffoli":
+							gate = "c1-c1-X"
+						singleGateList = gate.split("-")
+						U = singleGateList[len(singleGateList)-1]
+						try:
+							if U == "X":
+								gateName = "+"
+							else:
+								gateName = styleDic[U][0]
+							gateColor = styleDic[U][1]
+						except KeyError as ke:
+							info = helperFunction.get_curl_info()
+							funName = info[0]
+							line = info[1]
+							interactCfg.writeErrorMsg("Key: " + str(ke) + " is not in Dict:styleDic!",funName,line)
 						#wheter the current qubit is the control-qubit
-						targetQubit = item.split(" ")[1].split(",")[1]
-						controlQubit = item.split(" ")[1].split(",")[0]
+						qubitStrList = item.split(" ")[1].split(",") 
+						targetQubit = qubitStrList[len(qubitStrList) - 1]
+						controlQubit = qubitStrList[0:len(qubitStrList)-1]
 						indexOfTarget = 0
 						#get the index of the target qubit
 						for tmp in q_keys:
@@ -181,29 +186,39 @@ class Circuit:
 								indexOfTarget += 1
 							else:
 								break
-						#draw a red circle in the control qubit
-						if str(q.ids) == controlQubit:
+						style = "circle"
+						#draw a circle in the control qubit
+						if str(q.ids) in controlQubit:	
 							smaller = min(indexOfTarget,j)
 							bigger = max(indexOfTarget,j)
 							x1 = [x_position] * (bigger * partition - smaller * partition)
 							y1 = range(smaller * partition,bigger * partition)
 							Ax.plot(x1,y1,gateColor)
+							indexOfCurrentQubit = controlQubit.index(str(q.ids))
+							if singleGateList[indexOfCurrentQubit][1:len(singleGateList[indexOfCurrentQubit])] == '0':
+								#the color of the frame
+								fc = gateColor
+								#the color of the inside
+								ec = "White"
+							else:
+								fc = gateColor
+								ec = gateColor
 							ann = Ax.annotate("1",
                   				xy=(1, 20), xycoords='data',color=gateColor,
                   				xytext=(x_position, j*partition), textcoords='data',
                   				size=6/factor, va="center", ha="center",
                   				bbox=dict(boxstyle="circle", fc=gateColor,pad=0.3,ec=gateColor),
                   			)
-							x_position += 5/factor
                   			#don't draw the CX
-							continue
-					ann = Ax.annotate(gateName,
-                  		xy=(1, 20), xycoords='data',
-                  		xytext=(x_position, j*partition), textcoords='data',color='w',
-                  		size=12/factor, va="center", ha="center",
-                  		bbox=dict(boxstyle=style, fc=gateColor,pad=0.3,ec=gateColor),
-                  		)
-					x_position += 5/factor
+						else:
+							ann = Ax.annotate(gateName,
+								xy=(1, 20), xycoords='data',
+								xytext=(x_position, j*partition), textcoords='data',color='w',
+								size=12/factor, va="center", ha="center",
+								bbox=dict(boxstyle=style, fc=gateColor,pad=0.3,ec=gateColor),
+								)
+					x_position += 5/factor							
+
 				j += 1
 			############################the gate has completed########################################
 			#plt.show()
@@ -223,23 +238,20 @@ class Circuit:
 		print("begin export the QASM code of the circuit...")
 		if self.checkEnvironment():
 			qubitNum = len(er.keys())
-			code = open(self.urls+"/qasm.txt","w")
-			codeHeader = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + str(qubitNum) + '];creg c[' + str(qubitNum) + '];'
-			code.write(codeHeader)
-			code.write("\n")
+			code = open(self.urls+"/QASM.txt","w")
 			#get the ids of the qubit
 			qubitList = []
 			for q in er.keys():
 				qubitList.append(q)
-			#get the max length of the execute path
+			#get the max length of the circuit depth
 			maxGate = 0
 			for i in range(0,qubitNum):
 				if maxGate < len(er[qubitList[i]]):
 					maxGate = len(er[qubitList[i]])
-			#draw the circuit 
 			for m in range(0,maxGate):
 				for n in range(0,qubitNum):
 					content = er[qubitList[n]]
+					#print(content)
 					length = len(content)
 					#if there is no element to be draw, skip the loop
 					if m > length-1:
@@ -247,21 +259,20 @@ class Circuit:
 					item = content[m]
 					qubits = item.split(" ")[1].split(",")
 					gate = item.split(" ")[0]
-					if gate == 'NULL' or gate == 'qif':
+					if gate == 'NULL':
 						continue
-					try:
-						gate = qasmDic[gate]
-					except KeyError as ke:
-						info = helperFunction.get_curl_info()
-						funName = info[0]
-						line = info[1]
-						interactCfg.writeErrorMsg("key " + str(ke) + " doesn't exist",funName,line)
-					#if the gate is CNOT and the current qubit is the target, that is ,
-					#the current qubit is in the 2th postion, then don't draw the gate
-					if gate == "cx" and str(qubits[1]) == str(qubitList[n].ids):
+					if gate == "Toffoli":
+						gate = "c1-c1-X"
+					
+					#if the gate is MCU and the current qubit is the target, that is ,
+					#the current qubit isn't in the first postion, then don't export the gate
+					import re
+					if re.search(r'^(c\d-)+.$',gate) != None and str(qubitList[n].ids) in qubits[1:len(qubits)]:
 						continue
+					if gate == "c1-c1-X":
+						gate = "Toffoli"
 					code.write(gate + " ")
-					if gate == "measure":
+					if gate == "M":
 						if len(qubits) != 1:
 							try:
 								raise CodeError("Can't measure more than one qubit simultaneously")

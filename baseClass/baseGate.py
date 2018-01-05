@@ -5,7 +5,7 @@ from interactCfg import *
 from Bit import Bit
 from Qubit import *
 from helperFunction import *
-from Circuit import Circuit
+#from Circuit import Circuit
 from Error import *
 import numpy as np
 import math
