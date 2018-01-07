@@ -8,11 +8,13 @@ def u():
 		qList.append(Qubit())
 	X(qList[0])
 	X(q)
-	Toffoli(q,qList[0],qList[1])
-	M(q)
-	M(qList[0])
-	M(qList[1])
-	# with DMif([qList[0],qList[1],qList[2]],[0,0,1]) as dmo:
+	#Toffoli(q,qList[0],qList[1])
+	CNOT(qList[0],qList[1])
+	# with DMif([qList[0],qList[1],qList[2]],[1,1,0,]) as dmo:
 	# 	dmo.X(q)
-		#print(dmo.v)
+	with DMif([qList[0]],[0]) as dmo:
+		dmo.Z(q)
+	#M(qList[1])
+	QSprint(q)
+	M(q)
 	c.execute(1024)

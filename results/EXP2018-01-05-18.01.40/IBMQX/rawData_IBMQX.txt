@@ -1,1 +1,0 @@
-{'status': 'WORKING_IN_PROGRESS', 'idExecution': '3ef427dbeb53346a830d4f4f8e5ff2f3', 'idCode': '923e537accbb27dbb00d6f08aae6b9d7', 'infoQueue': {'status': 'PENDING_IN_QUEUE', 'position': 9, 'estimatedTimeInQueue': 810}}

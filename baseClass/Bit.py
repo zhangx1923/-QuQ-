@@ -2,12 +2,6 @@
 #the Bit class represent the standard classical bit
 #get the info about the function name and the line number
 import sys
-def get_curl_info():
-	try:
-		raise Exception
-	except:
-		f = sys.exc_info()[2].tb_frame.f_back
-	return [f.f_code.co_name, f.f_lineno]
 
 class Bit:
 	idList = []
@@ -31,7 +25,7 @@ class Bit:
 			try:
 				raise IDRepeatError("The id of this bit has been used, please choose another id!")
 			except IDRepeatError as ir:
-				info = get_curl_info()
+				info = self.get_curl_info()
 				funName = info[0]
 				line = info[1]
 				writeErrorMsg(ir,funName,line)
@@ -43,3 +37,10 @@ class Bit:
 	#please note that the first argument must Bit and the second argument must be str
 	def __add__(self,other:str):
 		return (str(self.value) + other)
+
+	def get_curl_info(self):
+		try:
+			raise Exception
+		except:
+			f = sys.exc_info()[2].tb_frame.f_back
+		return [f.f_code.co_name, f.f_lineno]	

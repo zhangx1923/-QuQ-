@@ -20,7 +20,7 @@ class ControlFlow:
 					info = get_curl_info()
 					funName = info[0]
 					line = info[1]
-					writeErrorMsg("The length of the first argument should be same with the length of the second argument!",funName,line)				
+					writeErrorMsg("The length of the qubit list should be same with the length of the value list!",funName,line)				
 			if repeatElement(q):
 				info = get_curl_info()
 				writeErrorMsg("There are repeating elements in the control-qubits list!",info[0],info[1])

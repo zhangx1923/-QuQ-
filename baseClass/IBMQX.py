@@ -138,12 +138,13 @@ class IBMQX:
 				QASM.append(tmpCode)
 			else:
 				tmpQASM = ""
+				print(gate)
 				#the gate should be splited into components
 				if re.search(r'^(c\d-).$',gate) != None :
 					tmpQASM = sg.CU()
 				elif gate == "Toffoli":
-					tmpQASM = sg.Toffoli()
-				elif re.search(r'^(c\d-).$',gate) != None:
+					tmpQASM = sg.Toffoli(["cq-0","cq-1"],"tq-1")
+				elif re.search(r'^(c\d-)+.$',gate) != None:
 					tmpQASM = sg.MCU()
 				else:
 					info = get_curl_info()

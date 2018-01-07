@@ -28,7 +28,7 @@ class SplitGate:
 			else:
 				j = i
 			if vl[j] == 0:
-				QASM += "X q" + str(cql[i].ids) + ";"
+				QASM += "X cq-" + str(i) + ";"
 		#then the circuit is equal to c1-c1-c1-c1...-U
 		return QASM
 
@@ -37,30 +37,81 @@ class SplitGate:
 	def CU(self,gateName:str,cq:Qubit,tq:Qubit,vl:list):
 		QASM = ""
 		QASM += self.__convert0to1([cq],vl)
+
 		#all the control-gate can be split into CNOT and single-gate
-		
+		singleGate = gateName.split("-")[1]
+		#the singleGate can only be an element of the set "Y,Z,H,S,Sd,T,Td"
+		tmpQASM = ""
+		if singleGate == "Y":
+			pass
+		elif singleGate == "Z":
+			tmpQASM = "H tq-0;CNOT cq-0,tq-0;H tq-0;"
+		elif singleGate == "H":
+			pass
+		elif singleGate == "S":
+			pass
+		elif singleGate == "Sd":
+			pass
+		elif singleGate == "T":
+			pass
+		elif singleGate == "Td":
+			pass
+		else:
+			try:
+				raise GateNameError(singleGate)
+			except GateNameError as gne:
+				info = get_curl_info()
+				writeErrorMsg(gne,info[0],info[1])
+		QASM += tmpQASM
 		QASM += self.__convert0to1([cq],vl)
 		return QASM
 
 	#MC-U means that this is a controlled-gate with more than one control qubit
+	#MCU will be split to Toffoli and CCU
 	#return value is the QASM code of this MCU
 	def MCU(self,gateName:str,cql:list,tq:Qubit,vl:list):
 		if gateName == "c1-c1-X":
-			return self.Toffoli(cql[0],cql[1],tq)
-		QASM = ""
-		QASM += self.__convert0to1(cql,vl)
+			return self.Toffoli(["cq-0","cq-1"],"tq-0")
+
 		#the multi-controlled qubit gate "c1-c1-c1-c1...-X" can be split to a series of Toffoli gates
 		#then c1-c1-c1-c1...-U is same with this case
-
-		QASM += self.__convert0to1(cql,vl)		
+		N = len(cql) + 1
+		actualN = 2 * N -3
+		for i in range(0,actualN-1):
+			if i % 2 == 0 and i > 0:
+				#insert an auxiliary qubit 
+				cql.insert(i,Qubit()) 
+				#the auxiliary qubit need NOT to use X gate to fix the state
+				vl.insert(i,1)
+		QASM = ""
+		QASM += self.__convert0to1(cql,vl)
+		for j in range(2,actualN-1,2):
+			QASM += self.Toffoli(["cq-"+str(j-2),"cq-"+str(j-1)],"cq-"+str(j))
+		#the rest of the circuit is CCU
+		#the CCU is Toffoli
+		singleG = gateName.split("-")[-1]
+		if singleG == "X":
+			QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-"+str(0))
+		else:
+			#the general case: CCU
+			pass
+		QASM += self.__convert0to1(cql,vl)
 		return QASM
 
 	#special-case, this is an important element in constructing MCU
-	#the index of the control qubit and the target qubit is from 0 to n-1
-	def Toffoli(self):
-		#cq-0 stands for the cql[0]
-		#tq-1 stands for the tql[1]
-		QASM = "H tq-0;CNOT cq-1,tq-0;Td tq-0;CNOT cq-0,tq-0;T tq-0;CNOT cq-1,tq-0;Td tq-0;CNOT cq-0,tq-0;Td cq-1;T tq-0;CNOT cq-0,cq-1;H tq-0;Td cq-1;CNOT cq-0,cq-1;T cq-0;S cq-1"
+	#cqIndexL stands for the list of the index of the control-qubits in the cqL
+	#tqIndex stands for the index of the target qubit in the tqL 
+	def Toffoli(self,cqIndexL:list,id_tq:str):
+		id_cq0 = cqIndexL[0]
+		id_cq1 = cqIndexL[1]
+		QASM = "H "+id_tq+";CNOT "+id_cq1
+		QASM += ","+id_tq+";Td "+id_tq+";CNOT "+id_cq0
+		QASM += ","+id_tq+";T "+id_tq+";CNOT "+id_cq1
+		QASM += ","+id_tq+";Td "+id_tq+";CNOT "+id_cq0
+		QASM += ","+id_tq+";Td "+id_cq1+";T "+id_tq
+		QASM += ";CNOT "+id_cq0+","+id_cq1+";H "+id_tq
+		QASM += ";Td "+id_cq1+";CNOT "+id_cq0+","+id_cq1
+		QASM += ";T "+id_cq0+";S "+id_cq1 +";"
 		return QASM
 
 	#record the entire gate in circuit.qubitExecuteList
@@ -83,6 +134,8 @@ class SplitGate:
 		#execute the component gate
 		erL = er.split(";")
 		for item in erL:
+			if item == "":
+				continue
 			tmpStr = item.split(" ")
 			gate = tmpStr[0]
 			exeStr = gate + "("
@@ -90,16 +143,19 @@ class SplitGate:
 			for i in range(0,len(q)):
 				qType = q[i].split("-")[0]
 				index = q[i].split("-")[1]
-				if qType == "cq":
-					exeStr += "cqL[" + index + "]"
-				elif qType == "tq":
-					exeStr += "tqL[" + index + "]"
-				else:
-					try:
-						raise ValueError
-					except ValueError:
-						info = self.get_curl_info()
-						writeErrorMsg("Qubit List: "+qtype+" isn't defined in Class SplitGate!",info[0],info[1])
+				try:
+					if qType == "cq":
+						exeStr += "cqL[" + index + "]"
+					elif qType == "tq":
+						exeStr += "tqL[" + index + "]"
+					else:
+							raise ValueError
+				except ValueError:
+					info = self.get_curl_info()
+					writeErrorMsg("Qubit List: "+qtype+" isn't defined in Class SplitGate!",info[0],info[1])
+				except IndexError:
+					info = self.get_curl_info()
+					writeErrorMsg("The index of the target element is our of range!",info[0],info[1])
 				if i != len(q)-1:
 					exeStr += ","
 			exeStr += ",False)"
@@ -175,5 +231,5 @@ def M(q:Qubit,auQubit = False):
 #Toffoli gate, three input and three output
 def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):
 	sg = SplitGate()
-	executeRecord = sg.Toffoli()
+	executeRecord = sg.Toffoli(["cq-0","cq-1"],"tq-0")
 	return sg.execute(executeRecord,[q1,q2],[q3],'Toffoli')

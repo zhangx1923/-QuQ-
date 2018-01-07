@@ -59,6 +59,19 @@ class CodeError(Exception):
 		result += "Error Message: " + self.value
 		return result	
 
+#the gate name is not defined in this platfrom
+class GateNameError(Exception):
+	def __init__(self,gateName,msg=None):
+		if msg == None:
+			self.value = "Gate: " + gateName + " has not defined in this platfrom!"
+		else:
+			self.value = msg
+	def __str__(self):
+		result = "Error Type: GateNameError\r\n"
+		result += "Error Message: " + self.value
+		return result	
+
+
 #calling the IBMQX api lead to error
 class IBMError(Exception):
 	def __init__(self,msg = None):

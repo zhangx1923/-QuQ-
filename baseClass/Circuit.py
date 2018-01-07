@@ -162,6 +162,8 @@ class Circuit:
 					else:
 						if gate == "Toffoli":
 							gate = "c1-c1-X"
+						if gate == "CNOT":
+							gate = "c1-X"
 						singleGateList = gate.split("-")
 						U = singleGateList[len(singleGateList)-1]
 						try:
@@ -186,7 +188,7 @@ class Circuit:
 								indexOfTarget += 1
 							else:
 								break
-						style = "circle"
+						
 						#draw a circle in the control qubit
 						if str(q.ids) in controlQubit:	
 							smaller = min(indexOfTarget,j)
@@ -195,22 +197,25 @@ class Circuit:
 							y1 = range(smaller * partition,bigger * partition)
 							Ax.plot(x1,y1,gateColor)
 							indexOfCurrentQubit = controlQubit.index(str(q.ids))
+							#print(type(singleGateList[indexOfCurrentQubit][1:len(singleGateList[indexOfCurrentQubit])]))
 							if singleGateList[indexOfCurrentQubit][1:len(singleGateList[indexOfCurrentQubit])] == '0':
-								#the color of the frame
-								fc = gateColor
 								#the color of the inside
-								ec = "White"
+								fc = "White"
+
 							else:
 								fc = gateColor
-								ec = gateColor
+							#the color of the frame
+							ec = gateColor
 							ann = Ax.annotate("1",
-                  				xy=(1, 20), xycoords='data',color=gateColor,
+                  				xy=(1, 20), xycoords='data',color=fc,
                   				xytext=(x_position, j*partition), textcoords='data',
                   				size=6/factor, va="center", ha="center",
-                  				bbox=dict(boxstyle="circle", fc=gateColor,pad=0.3,ec=gateColor),
+                  				bbox=dict(boxstyle="circle", fc=fc,pad=0.3,ec=ec),
                   			)
                   			#don't draw the CX
 						else:
+							if gateName == "+":
+								style = "circle"
 							ann = Ax.annotate(gateName,
 								xy=(1, 20), xycoords='data',
 								xytext=(x_position, j*partition), textcoords='data',color='w',
@@ -263,14 +268,17 @@ class Circuit:
 						continue
 					if gate == "Toffoli":
 						gate = "c1-c1-X"
-					
+					if gate == "CNOT":
+						gate = "c1-X"
 					#if the gate is MCU and the current qubit is the target, that is ,
 					#the current qubit isn't in the first postion, then don't export the gate
 					import re
-					if re.search(r'^(c\d-)+.$',gate) != None and str(qubitList[n].ids) in qubits[1:len(qubits)]:
+					if re.search(r'^(c\d-)+.$',gate) != None and str(qubitList[n].ids) != qubits[0]:
 						continue
 					if gate == "c1-c1-X":
 						gate = "Toffoli"
+					if gate == "c1-X":
+						gate = "CNOT"
 					code.write(gate + " ")
 					if gate == "M":
 						if len(qubits) != 1:
