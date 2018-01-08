@@ -43,19 +43,21 @@ class SplitGate:
 		#the singleGate can only be an element of the set "Y,Z,H,S,Sd,T,Td"
 		tmpQASM = ""
 		if singleGate == "Y":
-			pass
+			tmpQASM = "Sd tq-0;CNOT cq-0,tq-0;S tq-0;"
 		elif singleGate == "Z":
 			tmpQASM = "H tq-0;CNOT cq-0,tq-0;H tq-0;"
 		elif singleGate == "H":
-			pass
+			tmpQASM = "H tq-0;Sd tq-0;CNOT cq-0,tq-0;H tq-0;T tq-0;CNOT cq-0,tq-0;T tq-0;H tq-0;S tq-0;X tq-0;S cq-0;"
 		elif singleGate == "S":
-			pass
+			#double CT
+			tmpQASM = ""
 		elif singleGate == "Sd":
-			pass
+			#double CTd
+			tmpQASM = ""
 		elif singleGate == "T":
-			pass
+			tmpQASM = ""
 		elif singleGate == "Td":
-			pass
+			tmpQASM = ""
 		else:
 			try:
 				raise GateNameError(singleGate)
@@ -91,9 +93,39 @@ class SplitGate:
 		#the CCU is Toffoli
 		singleG = gateName.split("-")[-1]
 		if singleG == "X":
-			QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-"+str(0))
+			QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
 		else:
 			#the general case: CCU
+			if singleG == "Y":
+				QASM += "Sd tq-0;"
+				QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+				QASM += "S tq-0;"
+			elif singleG == "Z":
+				QASM += "H tq-0;"
+				QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+				QASM += "H tq-0;"
+			elif singleG == "H":
+				QASM += "H tq-0;Sd tq-0;"
+				QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+				QASM += "H tq-0;T tq-0;"
+				QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+				QASM += "T tq-0;H tq-0;S tq-0;X tq-0;S cq-0;"
+			elif singleG == "S":
+				#double CT
+				QASM += ""
+			elif singleG == "Sd":
+				#double CTd
+				QASM += ""
+			elif singleG == "T":
+				QASM += ""
+			elif singleG == "Td":
+				QASM += ""
+			else:
+				try:
+					raise GateNameError(singleG)
+				except GateNameError as gne:
+					info = get_curl_info()
+					writeErrorMsg(gne,info[0],info[1])			
 			pass
 		QASM += self.__convert0to1(cql,vl)
 		return QASM
