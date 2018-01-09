@@ -22,7 +22,10 @@ allowGate = {
 	'Td':1,
 	'H':1,
 	'I':1,
-	'M':1
+	'M':1,
+	'Rz':1,
+	'Ry':1,
+	'Rx':1
 }
 
 class Gate:
@@ -55,10 +58,13 @@ class Gate:
 		q2 = self.ql[1]
 		#q1 is same with q2
 		if id(q1) == id(q2):
-			info = self.get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("The control-qubit can't be same with the target-qubit of CNOT gate!",funName,line)	
+			try:
+				raise CodeError("The control-qubit can't be same with the target-qubit of CNOT gate!")
+			except CodeError as ce:
+				info = self.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg(ce,funName,line)	
 		circuit = self.recordmultiExecution(record)
 		if circuit == None:
 			return False
@@ -340,57 +346,6 @@ class Gate:
 				exeRecord[item].append(strs)
 		return circuit
 
-
-
-	#the following gates aren't allowd in QASM and ibm quantum chip for now
-	# #theta is expressed in radian
-	# def Rx(q:Qubit,theta):
-	# 	checkType([q])
-	# 	circuit = recordSingleExecution("Rx",q)
-	# 	if circuit == None:
-	# 		return False
-	# 	qs = q.entanglement
-	# 	Rx = [[math.cos(theta/2),math.sin(theta/2)*-1j],[math.sin(theta/2)*-1j,math.cos(theta/2)]]
-	# 	noise([q],Rx)
-	# 	if qs != None:
-	# 		q = handleQubits(Rx,q)
-	# 	else:
-	# 		result = matrixCompution(Rx,q.getMatrix()).tolist()
-	# 		q.setMatrix(result)
-	# 	return q
-
-	# #theta is expressed in radian
-	# def Ry(q:Qubit,theta):
-	# 	checkType([q])
-	# 	circuit = recordSingleExecution("Ry",q)
-	# 	if circuit == None:
-	# 		return False
-	# 	qs = q.entanglement
-	# 	Ry = [[math.cos(theta/2),-math.sin(theta/2)],[math.sin(theta/2,math.cos(theta/2))]]
-	# 	noise([q],Ry)
-	# 	if qs != None:
-	# 		q = handleQubits(Ry,q)
-	# 	else:
-	# 		result = matrixCompution(Ry,q.getMatrix()).tolist()
-	# 		q.setMatrix(result)
-	# 	return q
-
-	# #theta is expressed in radian
-	# def Rz(q:Qubit,theta):
-	# 	checkType([q])
-	# 	circuit = recordSingleExecution("Rz",q)
-	# 	if circuit == None:
-	# 		return False
-	# 	qs = q.entanglement
-	# 	pows = (-1)*theta/2j
-	# 	Rz = [[cmath.exp(-pows),0],[0,cmath.exp(pows)]]
-	# 	noise([q],Rz)
-	# 	if qs != None:
-	# 		q = handleQubits(Rz,q)
-	# 	else:
-	# 		result = matrixCompution(Rz,q.getMatrix()).tolist()
-	# 		q.setMatrix(result)
-	# 	return q
 
 #add noise to the gate; the noise value is read from errorRate.cfg
 #attention, only the execute mode is 'simulator', then the function is useful

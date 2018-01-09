@@ -3,6 +3,7 @@
 import datetime
 import json
 import sys
+import os
 sys.path.append('../baseClass/')
 cfgLocation = "../config/"
 
@@ -31,7 +32,7 @@ def writeErrorMsg(msg,funName,line):
 		errorStr += "\r\n"
 		errorStr += line
 		file.write(errorStr)
-	sys.exit()
+	os._exit(1)
 
 #read the config file about the executeMode (EM for short)
 def readCfgEM():

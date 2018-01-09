@@ -138,12 +138,11 @@ class IBMQX:
 				QASM.append(tmpCode)
 			else:
 				tmpQASM = ""
-				print(gate)
 				#the gate should be splited into components
 				if re.search(r'^(c\d-).$',gate) != None :
 					tmpQASM = sg.CU()
 				elif gate == "Toffoli":
-					tmpQASM = sg.Toffoli(["cq-0","cq-1"],"tq-1")
+					tmpQASM = sg.Toffoli(["cq-0","cq-1"],"tq-0")
 				elif re.search(r'^(c\d-)+.$',gate) != None:
 					tmpQASM = sg.MCU()
 				else:
@@ -157,12 +156,16 @@ class IBMQX:
 				#only multi-controlled qubit with one-target qubit gate is allowed for now
 				#the one-control qubit with multi-target qubits gate
 				#and multi-controlled qubit with multi-target qubit gate will be added in the future if needed
+				
 				qubits = tmpQL.split(";")[0].split("\n")[0].split(",")
 				controlQL = qubits[0:len(qubits)-1]
 				targetQL = qubits[len(qubits)-1:len(qubits)]
 				for item in itemList:
+					if item == "":
+						continue
 					tmpCode = ""
-					gate = qasmDic[item.split(" ")[0]]
+					s = item.split(" ")[0]
+					gate = qasmDic[s]
 					tmpCode += gate + " "
 					tmp = item.split(" ")[1].split(",")
 					for t in range(0,len(tmp)):

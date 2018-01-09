@@ -30,6 +30,8 @@ styleDic = {
 	"Sd":["Sd","C7"],
 	"M":["M","C3"],
 	"qif":["qif","C3"],
+	"Rz":["Rz","C5"],
+	"Ry":["Ry","C5"]
 	#"Toffoli":["+","C0"],
 	#multi-controlled gate
 }
