@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #import the ibm code
 from IBMQuantumExperience import *
 from interactCfg import *
