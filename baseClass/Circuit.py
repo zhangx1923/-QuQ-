@@ -31,7 +31,8 @@ styleDic = {
 	"M":["M","C3"],
 	"qif":["qif","C3"],
 	"Rz":["Rz","C5"],
-	"Ry":["Ry","C5"]
+	"Ry":["Ry","C5"],
+	"Rx":["Rx","C5"]
 	#"Toffoli":["+","C0"],
 	#multi-controlled gate
 }
@@ -665,6 +666,7 @@ class Circuit:
 		print(msg)
 		try:
 			file = open(self.urls + "/result.log","a")
+			file.write("\n")
 			file.write(msg)
 			file.close()
 		except IOError as io:

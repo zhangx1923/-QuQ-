@@ -143,7 +143,7 @@ class IBMQX:
 				if re.search(r'^(c\d-).$',gate) != None :
 					tmpQASM = sg.CU()
 				elif gate == "Toffoli":
-					tmpQASM = sg.Toffoli(["cq-0","cq-1"],"tq-0")
+					tmpQASM = sg.MCU(["cq-0","cq-1"],"tq-0")
 				elif re.search(r'^(c\d-)+.$',gate) != None:
 					tmpQASM = sg.MCU()
 				else:

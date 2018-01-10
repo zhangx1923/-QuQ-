@@ -22,7 +22,7 @@ def writeErrorMsg(msg,funName,line):
 	if circuit == None:
 		print("there is no circuit instance in the code, please add at least one instance!")
 	else:	
-		file = open(circuit.urls + "/errorMsg.txt","w")
+		file = open(circuit.urls + "/errorMsg.txt","a")
 		time = datetime.datetime.now()
 		errorStr = "Time:" + str(time) + "\r\n"
 		errorStr += "Error Message: "
@@ -32,7 +32,8 @@ def writeErrorMsg(msg,funName,line):
 		errorStr += "\r\n"
 		errorStr += line
 		file.write(errorStr)
-	os._exit(1)
+		file.close
+	sys.exit(1)
 
 #read the config file about the executeMode (EM for short)
 def readCfgEM():

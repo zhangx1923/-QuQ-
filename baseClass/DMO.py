@@ -38,13 +38,13 @@ class DMO:
 			name += "-"
 		cgn = name[0:len(name)-1]
 		return self.__setFullGName(cgn,gn)
-
 	#get the full name of the multi-controlled gate
 	def __setFullGName(self,cgn:str,gn:str):
 		return (cgn + "-" + gn)
 
+
 	#the "cq" is the control-qubit of the CNOT gate
-	def __Operator(self,gateName:str,tq:Qubit,cq = None):
+	def __Operator(self,gateName:str,tq:Qubit,cq = None,angle = None):
 		ql = self.DMOql.copy()
 		vl = self.DMOvl.copy()
 		QASM = ""
@@ -52,17 +52,18 @@ class DMO:
 			#CNOT gate call this function. We shoulde convert the format of CNOT
 			ql.append(cq)
 			vl.append(1)
+		fullGName = self.__fullGName(gateName,vl,ql)
 		#CNOT gate
 		if gateName == "c1-X":
 			return CNOT(ql[0],tq)
-		fullGName = self.__fullGName(gateName,vl,ql)
+		#the return value is a list consisted of all the control-qubits and the target-qubit	
 		if re.search(r'^(c\d-).$',fullGName) != None:
-			QASM = self.split.CU(fullGName,ql[0],tq,vl)
+			#split the CU and execute the computation
+			return self.split.CU(fullGName,ql[0],tq,vl,angle,True)
 		else:
 			#split the MCU and execute the computation
-			QASM = self.split.MCU(fullGName,ql,tq,vl)
-		#the return value is a list consisted of all the control-qubits and the target-qubit
-		return self.split.execute(QASM,ql,[tq],fullGName)		
+			return self.split.MCU(fullGName,ql,tq,vl,angle,True)
+
 
 	def X(self,q:Qubit):
 		gateName = "X"
@@ -99,6 +100,14 @@ class DMO:
 	def CNOT(self,q1:Qubit,q2:Qubit):
 		gateName = "X"
 		return self.__Operator(gateName,q2,q1)
+
+	def Rz(self,phi,q:Qubit):
+		gateName = "Rz"
+		return self.__Operator(gate,q,None,phi)
+
+	def Ry(self,phi,q:Qubit):
+		gateName = "Ry"
+		return self.__Operator(gate,q,None,phi)
 
 
 

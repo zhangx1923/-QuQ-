@@ -1,0 +1,4 @@
+Time:2018-01-10 21:16:05.442924
+Error Message: Only MCU is allowed! CMU and MCMU will be added if needed!
+Function Name: __translateQASM()
+Line: 150
