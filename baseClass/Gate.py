@@ -1,6 +1,21 @@
 #!/usr/bin/python3
 from baseGate import *
 
+#the dict will be used in SplitGate of Gate.py
+elementGate = {
+	"Y":"Sd tq-0;CNOT cq-0,tq-0;S tq-0;",
+	"Z":"H tq-0;CNOT cq-0,tq-0;H tq-0;",
+	"H":"H tq-0;Sd tq-0;CNOT cq-0,tq-0;H tq-0;T tq-0;CNOT cq-0,tq-0;T tq-0;H tq-0;S tq-0;X tq-0;S cq-0;",
+	"S":"T tq-0;CNOT cq-0,tq-0;Td tq-0;CNOT cq-0,tq-0;",
+	"Sd":"Td tq-0;CNOT cq-0,tq-0;T tq-0;CNOT cq-0,tq-0;",
+	"T":"Rz(math.pi/8) tq-0;CNOT cq-0,tq-0;Rz(-math.pi/8) tq-0;CNOT cq-0,tq-0;",
+	"Td":"Rz(-math.pi/8) tq-0;CNOT cq-0,tq-0;Rz(math.pi/8) tq-0;CNOT cq-0,tq-0;",
+	"Rz":"Rz(alpha) tq-0;CNOT cq-0,tq-0;Rz(beta) tq-0;CNOT cq-0,tq-0;",
+	"Ry":"Ry(alpha) tq-0;CNOT cq-0,tq-0;Ry(beta) tq-0;CNOT cq-0,tq-0;",
+	#the alpha and beta is a angle, and will be replaced by parameter of CU and MCU
+	#alpha = -beta
+}
+
 #split a gate to the elements in the Dic "allowGate"
 class SplitGate:
 	def __init__(self):
@@ -37,43 +52,21 @@ class SplitGate:
 	def CU(self,gateName:str,cq:Qubit,tq:Qubit,vl:list,angle = None,executeStatus = False):
 		QASM = ""
 		QASM += self.__convert0to1([cq],vl)
-
 		#all the control-gate can be split into CNOT and single-gate
 		singleGate = gateName.split("-")[1]
-		#the singleGate can only be an element of the set "Y,Z,H,S,Sd,T,Td"
+		#the singleGate can only be an element of the set "Y,Z,H,S,Sd,T,Td,Rz,Ry"
 		tmpQASM = ""
+		#ignore the global phase
 		try:
+			tmpQASM = elementGate[singleGate]
 			if angle != None:
 				#the U is Ry or Rz
 				angleN = angle/2
-				if singleGate == "Rz":
-					tmpQASM = "Rz("+ str(angleN) +") tq-0;CNOT cq-0,tq-0;Rz("+ str(-angleN) +") tq-0;CNOT cq-0,tq-0;"
-				elif singleGate == "Ry":
-					tmpQASM = "Ry("+ str(angleN) +") tq-0;CNOT cq-0,tq-0;Ry("+ str(-angleN) +") tq-0;CNOT cq-0,tq-0;"
-				else:
-					raise GateNameError(singleGate)
-			else:
-				if singleGate == "Y":
-					tmpQASM = "Sd tq-0;CNOT cq-0,tq-0;S tq-0;"
-				elif singleGate == "Z":
-					tmpQASM = "H tq-0;CNOT cq-0,tq-0;H tq-0;"
-				elif singleGate == "H":
-					tmpQASM = "H tq-0;Sd tq-0;CNOT cq-0,tq-0;H tq-0;T tq-0;CNOT cq-0,tq-0;T tq-0;H tq-0;S tq-0;X tq-0;S cq-0;"
-				elif singleGate == "S":
-					#tmpQASM = "CNOT cq-0,tq-0;Td tq-0;CNOT cq-0,tq-0;T tq-0;T cq-0;"
-					#ingore the global phase
-					tmpQASM = "T tq-0;CNOT cq-0,tq-0;Td tq-0;CNOT cq-0,tq-0;"
-				elif singleGate == "Sd":
-					tmpQASM = "Td tq-0;CNOT cq-0,tq-0;T tq-0;CNOT cq-0,tq-0;"
-				elif singleGate == "T":
-					tmpQASM = "Rz(math.pi/8) tq-0;CNOT cq-0,tq-0;Rz(-math.pi/8) tq-0;CNOT cq-0,tq-0;"
-				elif singleGate == "Td":
-					tmpQASM = "Rz(-math.pi/8) tq-0;CNOT cq-0,tq-0;Rz(math.pi/8) tq-0;CNOT cq-0,tq-0;"
-				else:
-					raise GateNameError(singleGate)
-		except GateNameError as gne:
+				tmpQASM = tmpQASM.replace("alpha",str(angleN),1)
+				tmpQASM = tmpQASM.replace("beta",str(-angleN),1)
+		except KeyError:
 			info = get_curl_info()
-			writeErrorMsg(gne,info[0],info[1])
+			writeErrorMsg("Gate: "+ singleGate + " hasn't been definded in Dict:elementGate in defines.py!",info[0],info[1])
 		QASM += tmpQASM
 		QASM += self.__convert0to1([cq],vl)
 		if executeStatus:
@@ -84,92 +77,93 @@ class SplitGate:
 	#MCU will be split to Toffoli and CCU
 	#return value is the QASM code of this MCU
 	def MCU(self,gateName:str,cql:list,tq:Qubit,vl:list,angle = None,executeStatus = False):
-		if gateName == "c1-c1-X" or "Toffoli":
-			return self.__Toffoli(["cq-0","cq-1"],"tq-0")
-
-		#the multi-controlled qubit gate "c1-c1-c1-c1...-X" can be split to a series of Toffoli gates
-		#then c1-c1-c1-c1...-U is same with this case
-		N = len(cql) + 1
-		actualN = 2 * N -3
-		for i in range(0,actualN-1):
-			if i % 2 == 0 and i > 0:
-				#insert an auxiliary qubit 
-				cql.insert(i,Qubit()) 
-				#the auxiliary qubit need NOT to use X gate to fix the state
-				vl.insert(i,1)
-		QASM = ""
-		QASM += self.__convert0to1(cql,vl)
-		for j in range(2,actualN-1,2):
-			QASM += self.Toffoli(["cq-"+str(j-2),"cq-"+str(j-1)],"cq-"+str(j))
-		#the rest of the circuit is CCU
-		#the CCU is Toffoli
-		singleG = gateName.split("-")[-1]
-		if singleG == "X":
-			QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+		if gateName == "c1-c1-X" or gateName == "Toffoli":
+			QASM = self.__Toffoli(["cq-0","cq-1"],"tq-0")
 		else:
-			#the general case: CCU
-			try:
-				if angle != None:
-					#the U is Rz or Ry
-					angleN = angle/2
-					if singleGate == "Rz":
-						QASM = "Rz("+ str(angleN) +") tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Rz("+ str(-angleN) +") tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-					elif singleGate == "Ry":
-						QASM = "Ry("+ str(angleN) +") tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Ry("+ str(-angleN) +") tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+			#the multi-controlled qubit gate "c1-c1-c1-c1...-X" can be split to a series of Toffoli gates
+			#then c1-c1-c1-c1...-U is same with this case
+			N = len(cql) + 1
+			actualN = 2 * N -3
+			for i in range(0,actualN-1):
+				if i % 2 == 0 and i > 0:
+					#insert an auxiliary qubit 
+					cql.insert(i,Qubit(True)) 
+					#the auxiliary qubit need NOT to use X gate to fix the state
+					vl.insert(i,1)
+			QASM = ""
+			QASM += self.__convert0to1(cql,vl)
+			for j in range(2,actualN-1,2):
+				QASM += self.__Toffoli(["cq-"+str(j-2),"cq-"+str(j-1)],"cq-"+str(j))
+			#the rest of the circuit is CCU
+			#the CCU is Toffoli
+			singleG = gateName.split("-")[-1]
+			if singleG == "X":
+				QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+			else:
+				#the general case: CCU
+				try:
+					if angle != None:
+						#the U is Rz or Ry
+						angleN = angle/2
+						if singleG == "Rz":
+							QASM += "Rz("+ str(angleN) +") tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Rz("+ str(-angleN) +") tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+						elif singleG == "Ry":
+							QASM += "Ry("+ str(angleN) +") tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Ry("+ str(-angleN) +") tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+						else:
+							raise GateNameError(singleGate)					
 					else:
-						raise GateNameError(singleGate)					
-				else:
-					if singleG == "Y":
-						QASM += "Sd tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "S tq-0;"
-					elif singleG == "Z":
-						QASM += "H tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "H tq-0;"
-					elif singleG == "H":
-						QASM += "H tq-0;Sd tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "H tq-0;T tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "T tq-0;H tq-0;S tq-0;X tq-0;"
-						QASM += "S cq-"+str(actualN-3)+";S cq-"+str(actualN-2)+";"
-					elif singleG == "S":
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Td tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "T tq-0;T cq-"+str(actualN-3)+";T cq-"+str(actualN-2)+";"
-					elif singleG == "Sd":
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "T tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Td tq-0;Td cq-"+str(actualN-3)+";Td cq-"+str(actualN-2)+";"
-					elif singleG == "T":
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Rz(-math.pi/8) tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Rz(math.pi/8) tq-0;Rz(math.pi/8) cq-"+str(actualN-3)+";Rz(math.pi/8) cq-"+str(actualN-2)+";"
-					elif singleG == "Td":
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Rz(math.pi/8) tq-0;"
-						QASM += self.Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
-						QASM += "Rz(-math.pi/8) tq-0;Rz(-math.pi/8) cq-"+str(actualN-3)+";Rz(-math.pi/8) cq-"+str(actualN-2)+";"
-					else:
-						raise GateNameError(singleG)
-			except GateNameError as gne:
-				info = get_curl_info()
-				writeErrorMsg(gne,info[0],info[1])			
-			pass
-		QASM += self.__convert0to1(cql,vl)
+						if singleG == "Y":
+							QASM += "Sd tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "S tq-0;"
+						elif singleG == "Z":
+							QASM += "H tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "H tq-0;"
+						elif singleG == "H":
+							QASM += "H tq-0;Sd tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "H tq-0;T tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "T tq-0;H tq-0;S tq-0;X tq-0;"
+							QASM += "S cq-"+str(actualN-3)+";S cq-"+str(actualN-2)+";"
+						elif singleG == "S":
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Td tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "T tq-0;T cq-"+str(actualN-3)+";T cq-"+str(actualN-2)+";"
+						elif singleG == "Sd":
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "T tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Td tq-0;Td cq-"+str(actualN-3)+";Td cq-"+str(actualN-2)+";"
+						elif singleG == "T":
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Rz(-math.pi/8) tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Rz(math.pi/8) tq-0;Rz(math.pi/8) cq-"+str(actualN-3)+";Rz(math.pi/8) cq-"+str(actualN-2)+";"
+						elif singleG == "Td":
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Rz(math.pi/8) tq-0;"
+							QASM += self.__Toffoli(["cq-"+str(actualN-3),"cq-"+str(actualN-2)],"tq-0")
+							QASM += "Rz(-math.pi/8) tq-0;Rz(-math.pi/8) cq-"+str(actualN-3)+";Rz(-math.pi/8) cq-"+str(actualN-2)+";"
+						else:
+							raise GateNameError(singleG)
+				except GateNameError as gne:
+					info = get_curl_info()
+					writeErrorMsg(gne,info[0],info[1])			
+				pass
+			QASM += self.__convert0to1(cql,vl)
+			#print(QASM)
+		
 		if executeStatus:
 			return self.execute(QASM,cql,[tq],gateName)
-		#print(QASM)
 		return QASM
 
 	#special-case, this is an important element in constructing MCU
@@ -186,6 +180,7 @@ class SplitGate:
 		QASM += ";CNOT "+id_cq0+","+id_cq1+";H "+id_tq
 		QASM += ";Td "+id_cq1+";CNOT "+id_cq0+","+id_cq1
 		QASM += ";T "+id_cq0+";S "+id_cq1 +";"
+		#print(QASM)
 		return QASM
 
 	#record the entire gate in circuit.qubitExecuteList
@@ -193,16 +188,28 @@ class SplitGate:
 		resQL = cql.copy()
 		for tq in tql:
 			resQL.append(tq)
+
+		#record the entire gate in circuit.qubitExecuteList
+
+		i = 0
+		while i < len(resQL):
+			if resQL[i].tag == "AX":
+				#the qubit is an auxiliary qubit
+				del resQL[i]
+				continue
+			i += 1
+
 		cG = [[0] * (2**len(resQL))] * (2**len(resQL))
 		#append the multi-controlled gate to Dict "allowGate", which is defined in baseGate.py
 		allowGate[gateName] = len(resQL)
-		#record the entire gate in circuit.qubitExecuteList
 		#init the Gate instance
 		gate = Gate(resQL,cG,gateName)
 		if len(resQL) == 1:
 			c = gate.recordSingleExecution()
+			#print(c.qubitExecuteList)
 		else:
 			c = gate.recordmultiExecution()
+			#print(c.qubitExecuteList)
 
 	#'er' is the QASM code generated by the other methods in this class
 	#note that all the Single-Gate and Double-Gate in this function shouldn't be stored in circuit.qubitExecuteList	
@@ -215,9 +222,10 @@ class SplitGate:
 				continue
 			tmpStr = item.split(" ")
 			gate = tmpStr[0]
+			import re
 			#if the gate has parameter
 			m = re.match("(.*)\((.*)\)(.*)", gate)
-			if m == None:
+			if m != None:
 				gate = m.group(1)
 				parameter = m.group(2)
 				exeStr = gate + "(" + parameter + ","
@@ -244,6 +252,7 @@ class SplitGate:
 					exeStr += ","
 			exeStr += ",False)"
 			exec(exeStr)
+			
 		resQL = cqL.copy()
 		for tq in tqL:
 			resQL.append(tq)
@@ -331,14 +340,14 @@ def CNOT(q1:Qubit,q2:Qubit,record = True):
 
 
 #execute the measurement, the types of the first argument must be Qubit; the second argument is optional,
-#if the auQubit is "False", then the result of the measurement won't be appeared in the end result 
-def M(q:Qubit,auQubit = False):
+#if the parameter "result" is "False", then the result of the measurement won't be appeared in the end result 
+def M(q:Qubit,result = True):
 	I = [[1,0],[0,1]]
 	gate = Gate([q],I,"M")
-	return gate.MOperator(auQubit)
+	return gate.MOperator(result)
 
 #Toffoli gate, three input and three output
 def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):
 	sg = SplitGate()
-	qL = sg.MCU("Toffoli",[q1,q2],[q3],[1,1],True)
+	qL = sg.MCU("Toffoli",[q1,q2],q3,[1,1],None,True)
 	return qL

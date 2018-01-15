@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import sys
+import os
 sys.path.append('../tools/')
 from interactCfg import *
 from Bit import Bit
@@ -11,6 +12,7 @@ import numpy as np
 import math
 import cmath
 
+#baseGate.py and Gate.py will use the DIC
 allowGate = {
 	'X':1,
 	'Y':1,
@@ -56,15 +58,17 @@ class Gate:
 	def CNOTOperator(self,record = True):
 		q1 = self.ql[0]
 		q2 = self.ql[1]
+
 		#q1 is same with q2
-		if id(q1) == id(q2):
-			try:
+		try:
+			if id(q1) == id(q2):
 				raise CodeError("The control-qubit can't be same with the target-qubit of CNOT gate!")
-			except CodeError as ce:
-				info = self.get_curl_info()
-				funName = info[0]
-				line = info[1]
-				writeErrorMsg(ce,funName,line)	
+		except CodeError as ce:
+			info = self.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			writeErrorMsg(ce,funName,line)	
+		
 		circuit = self.recordmultiExecution(record)
 		if circuit == None:
 			return False
@@ -130,12 +134,13 @@ class Gate:
 		qs.setMatrix(newQSMatrix)
 		return qs		
 
-	def MOperator(self,auQubit = False):
+	def MOperator(self,result = True):
 		q = self.ql[0]
 		#just store the M gate in circuit.qubitExecuteList, 
 		#the measurement will actually occur when function circuit.execute is called  
-		if auQubit == False:
+		if q.tag == "AC":
 			circuit = self.recordSingleExecution()
+		if result == True:
 			#store the measurement qubit in the self.measureList
 			circuit.measureList.append(q)
 			if circuit == None:
@@ -309,7 +314,7 @@ class Gate:
 			info = self.get_curl_info()
 			funName = info[0]
 			line = info[1]
-			writeErrorMsg("the current qubit is not stored in the execute list, please check your code!",funName,line)
+			writeErrorMsg("The current qubit is not stored in the execute list, please check your code!",funName,line)
 		return circuit
 
 	def recordmultiExecution(self,record = True):
@@ -318,6 +323,7 @@ class Gate:
 			return circuit
 		if circuit != None:
 			exeRecord = circuit.qubitExecuteList
+			#print(exeRecord)
 			strs = self.gateName + " "
 			maxLength = 0
 			#make up the multi gate string
@@ -325,13 +331,18 @@ class Gate:
 				ids = self.ql[i].ids
 				try:
 					length = len(exeRecord[self.ql[i]])
+					if "M " + str(ids) in exeRecord[self.ql[i]]:
+						raise ValueError
 				except KeyError as ke:
 					info = self.get_curl_info()
 					funName = info[0]
 					line = info[1]
-					print(exeRecord)
-					print(self.ql[i])
 					writeErrorMsg("Qubit: q" + str(self.ql[i].ids) + " is not stored in the execute list, please check your code!",funName,line)			
+				except ValueError:
+					info = self.get_curl_info()
+					funName = info[0]
+					line = info[1]		
+					writeErrorMsg("Qubit: q"+ str(self.ql[i].ids) + " has been measured! You can't act any gate on it!",funName,line)						
 				if maxLength < length:
 					maxLength = length
 				strs += str(ids)

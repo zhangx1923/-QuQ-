@@ -45,8 +45,10 @@ class DMO:
 
 	#the "cq" is the control-qubit of the CNOT gate
 	def __Operator(self,gateName:str,tq:Qubit,cq = None,angle = None):
+
 		ql = self.DMOql.copy()
 		vl = self.DMOvl.copy()
+
 		QASM = ""
 		if cq != None:
 			#CNOT gate call this function. We shoulde convert the format of CNOT
@@ -54,10 +56,10 @@ class DMO:
 			vl.append(1)
 		fullGName = self.__fullGName(gateName,vl,ql)
 		#CNOT gate
-		if gateName == "c1-X":
+		if fullGName == "c1-X":
 			return CNOT(ql[0],tq)
 		#the return value is a list consisted of all the control-qubits and the target-qubit	
-		if re.search(r'^(c\d-).$',fullGName) != None:
+		if re.match(r'^(c\d-){1}.{1,2}$',fullGName) != None:
 			#split the CU and execute the computation
 			return self.split.CU(fullGName,ql[0],tq,vl,angle,True)
 		else:
@@ -103,11 +105,11 @@ class DMO:
 
 	def Rz(self,phi,q:Qubit):
 		gateName = "Rz"
-		return self.__Operator(gate,q,None,phi)
+		return self.__Operator(gateName,q,None,phi)
 
 	def Ry(self,phi,q:Qubit):
 		gateName = "Ry"
-		return self.__Operator(gate,q,None,phi)
+		return self.__Operator(gateName,q,None,phi)
 
 
 

@@ -14,8 +14,8 @@ class Qif(ControlFlow):
 	def __enter__(self):
 		resList = []
 		for q in self.ql:
-			q1 = Qubit()
-			q2 = Qubit()
+			q1 = Qubit(True)
+			q2 = Qubit(True)
 			H(q1)
 			CNOT(q1,q2)
 			CNOT(q,q1)
@@ -27,8 +27,8 @@ class Qif(ControlFlow):
 			#restore the state of the Qubit "q"
 			H(q)
 			#destory the auxiliary qubits "q1" and "q2"
-			q2 = M(q2,True)
-			q1 = M(q1,True)
+			q2 = M(q2,False)
+			q1 = M(q1,False)
 			resList.append(q2.value)
 		if len(self.vl) == 1:
 			for r in resList:
@@ -59,7 +59,8 @@ class Mif(ControlFlow):
 	def __enter__(self):
 		resList = []
 		for i in range(0,len(self.ql)):
-			self.ql[i] = M(self.ql[i],True)
+			self.ql[i] = M(self.ql[i],False)
+			#print(Circuit.qubitExecuteList)
 			#Bit
 			resList.append(self.ql[i].value)
 		if len(self.vl) == 1:

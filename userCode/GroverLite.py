@@ -2,6 +2,7 @@ from header import *
 
 def groverLite():
 	totalElement = 4
+	targetElement = "11"
 	#the number of the qubits in theory
 	N = 3
 	c = Circuit()
@@ -9,31 +10,36 @@ def groverLite():
 	for i in range(0,N):
 		q = Qubit()
 		qList.append(q)
-	actualQubit = [0,1]
-	signQubit = [2]
+
 	X(qList[N-1])
-	for i in actualQubit:
+	for i in range(0,N):
 		H(qList[i])
-	H(qList[N-1])
-	G(qList)
+	
+	#apply the G operator on the qubits
+	G(qList,targetElement)
+
 	#measure the qubits
-	for q in actualQubit:
-		qList[q] = M(qList[q])
+	for i in range(0,N-1):
+		qList[i] = M(qList[i])
+
+	#execute the circuit for 1024 times
 	c.execute(1024)
 
-def G(qList:list):
-	actualQubit = [0,1]
-	signQubit = [2]
+def G(qList:list,target):
+	vl = []
+	for i in range(0,len(target)):
+		vl.append(int(target[i]))
 
-	Toffoli(qList[0],qList[1],qList[2])
+	with DMif([qList[0],qList[1]],vl) as dmo:
+		dmo.X(qList[2])
 
-	for i in actualQubit:	
+	for i in range(0,2):	
 		H(qList[i])
 		X(qList[i])
-	H(qList[len(qList)-2])
+	H(qList[1])
 	CNOT(qList[0],qList[1])
-	H(qList[len(qList)-2])
-	for i in actualQubit:	
+	H(qList[1])
+	for i in range(0,2):	
 		X(qList[i])
 		H(qList[i])
 

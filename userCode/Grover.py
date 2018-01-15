@@ -10,41 +10,33 @@ def grover():
 		n += 1
 	#the number of qubits actually used
 	N = 2*n - 1
-	c = Circuit()
-	qList = []
-	for i in range(0,N):
-		q = Qubit()
-		qList.append(q)
+	#the target element
+	targetE = "11"
+	#check the length of the target element and the totalElement
+	if checkE(totalElement,targetE):
+		c = Circuit()
+		qList = []
+		for i in range(0,N):
+			q = Qubit()
+			qList.append(q)
 
-	# there are three kinds of qubits:
-	# 1.actual qubit:qList[0,1,3,5,...]
-	# 2.auxiliary qubit:qList[2,4,6,...]
-	# 3.sign qubit: the last qubit in the list
-	actualQubit = []
-	auxiliaryQubit = []
-	signQubit = []
-	for i in range(0,len(qList)):
-		if i & 1 != 0 or i == 0:
-			actualQubit.append(i)
-		elif i & 1 == 0 and i != 0:
-			auxiliaryQubit.append(i)
-		else:
-			signQubit.append(i)
-	X(qList[N-1])
-	for i in actualQubit:
-		H(qList[i])
-	H(qList[N-1])
-	times = executeTimes(totalElement)
-	for i in range(0,times):
-		G(qList)
-	# qList[N-1] = qif(qList[N-1])
-	# if qList[N-1].value == 1:
-	# 	pass
-	#measure the qubits
-	for q in actualQubit:
-		qList[q] = M(qList[q])
+		X(qList[N-1])
+		for i in range(0,N):
+			H(qList[i])
 
-	c.execute(1024)
+		#act the G operator for "times" times
+		times = executeTimes(totalElement)
+		for i in range(0,times):
+			G(qList,targetE)
+
+		#measure the qubits
+		for i in range(0,N-1):
+			qList[i] = M(qList[i])
+
+		#execute the circuit for 1024 times
+		c.execute(1024)
+	else:
+		writeErrorMsg("The length of the target element isn't correspond with the number of the total elements!")
 
 #the parameter is the size of the database.
 #and the target is supposed to one element
@@ -56,39 +48,46 @@ def executeTimes(n):
 	else:
 		return int(times)
 
-def G(qList:list):
-	#oracle--H--phase--H
-	actualQubit = []
-	auxiliaryQubit = []
-	signQubit = []
-	for i in range(0,len(qList)):
-		if i & 1 != 0 or i == 0:
-			actualQubit.append(i)
-		elif i & 1 == 0 and i != 0:
-			auxiliaryQubit.append(i)
-		else:
-			signQubit.append(i)
-
-	for i in range(2,len(qList),2):
-		Toffoli(qList[i-2],qList[i-1],qList[i])
-
-	for i in actualQubit:	
-		H(qList[i])
-		X(qList[i])
-	H(qList[len(qList)-2])
-	tmpList = actualQubit.copy()
-	for j in range(0,len(actualQubit)-3):
-		tmpList.append(auxiliaryQubit[j])
-	tmpList.sort()
-	if len(tmpList) == 2:
-		CNOT(qList[tmpList[0]],qList[tmpList[1]])
+def checkE(toE:int,taE:str):
+	if toE <= (2 ** len(taE)):
+		return True
 	else:
-		for i in range(2,len(tmpList),2):
-			Toffoli(qList[i-2],qList[i-1],qList[i])
+		return False
 
-	H(qList[len(qList)-2])
-	for i in actualQubit:	
+def G(qList:list,taE:str):
+	qn = len(qList)
+	#there are four phase in this G operator
+	#PH1: apply the oracle operator
+	vl = []
+	for k in range(0,len(taE)):
+		vl.append(int(taE[k]))
+	tmp1 = []
+	for j in range(0,qn-1):
+		tmp1.append(qList[j])
+	with DMif(tmp1,vl) as dmo1:
+		dmo1.X(qList[qn-1])
+
+	#PH2: act H gates on the qubits except the last element
+	for i in range(0,qn-1):
+		H(qList[i])
+
+	#PH3: act the phase operator on the qubits except the last element
+	for i in range(0,qn-1):
 		X(qList[i])
+	H(qList[qn-2])
+
+	tmp2 = []
+	for j in range(0,qn-2):
+		tmp2.append(qList[j])
+	with DMif(tmp2,1) as dmo2:
+		dmo2.X(qList[qn-2])
+	
+	H(qList[qn-2])
+	for i in range(0,qn-1):
+		X(qList[i])
+
+	#PH4: act the H gates on all the qubits
+	for i in range(0,qn):
 		H(qList[i])
 
 

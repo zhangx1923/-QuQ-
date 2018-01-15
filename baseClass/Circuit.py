@@ -17,6 +17,7 @@ import matplotlib.patches as patches
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 import csv
 
+#the circuit.py will use this one 
 styleDic = {
 	"I":[" I ","C5"],
 	"X":["X","C0"],
@@ -37,6 +38,7 @@ styleDic = {
 	#multi-controlled gate
 }
 
+
 ResLocation = "../results/"
 
 #the data-type is the elementary unit of executing and export
@@ -45,7 +47,9 @@ class Circuit:
 	currentIDList = []
 	instance = None
 
-	def __init__(self,experimentName=None):
+	#the parameter "withOriginalData" is True, then record the componone elements of MCU
+	#instead of the whole gateName. And in this mode, it will figure out more detailed data
+	def __init__(self,withOriginalData = False,experimentName=None):
 		self.beginMemory = psutil.Process(os.getpid()).memory_info().rss
 		self.endMemory = 0
 		self.beginTime = datetime.datetime.now()
@@ -91,6 +95,12 @@ class Circuit:
 
 	#check the environment: whether the current circuit is equal to this instance 
 	def checkEnvironment(self):
+		#if there is ErrorMsg.txt in the folder, then exit <QuQ>
+		#it means that there is exception in With block and we should exit the program
+		if os.path.exists(self.urls + "/errorMsg.txt"):
+			#True
+			sys.exit(1)
+
 		circuitNum = len(Circuit.currentIDList)
 		if self.qubitNum != len(self.qubitExecuteList):
 			return False
@@ -98,7 +108,7 @@ class Circuit:
 		if circuitNum == 1 and Circuit.currentIDList[0] == self.ids:
 			return True
 		try:
-			strs = "there are " + str(len(Circuit.currentIDList)) + " Circuit instance, please check your code"
+			strs = "There are " + str(len(Circuit.currentIDList)) + " Circuit instance, please check your code"
 			raise EnvironmentError(strs)
 		except EnvironmentError as ee:
 			info = helperFunction.get_curl_info()
@@ -106,8 +116,20 @@ class Circuit:
 			line = info[1]
 			interactCfg.writeErrorMsg(ee.value,funName,line)
 
+	#figure out the number of the auxiliary qubits and the actual qubits
+	def __countACandAX(self,er):
+		AX = 0
+		AC = 0
+		for q in er:
+			if q.tag == "AX":
+				AX += 1
+			else:
+				AC += 1
+		return [AX,AC]
+
 	#draw the circuit according to the qubitExecuteList
-	def __exportCircuit(self,er):
+	#the parameter "typeQN" is a list [the number of AX qubits, the number of AC qubits]
+	def __exportCircuit(self,er,typeQN):
 		if self.checkEnvironment():
 			print("begin drawing the circuit...")
 			#set the canvas
@@ -116,7 +138,7 @@ class Circuit:
 			plt.axis('off')
 			#devide the canvas into 1row 1col, and our pic will be draw on the first place(from up to down, from left to right)
 			Ax = Fig.add_subplot(111)
-			qubitNum = len(er.keys())
+			qubitNum = typeQN[1]
 			############################draw the line according to self.qubitNum###########################
 			partition = 100 // qubitNum
 			for i in range(0,qubitNum):
@@ -130,10 +152,18 @@ class Circuit:
 			maxLength = 0
 			q_keys = []
 			for qe in er.keys():
-				maxLength = max(maxLength,len(er[qe]))
-				q_keys.append(qe)
+				#the auxiliary qubit won't be in the q_keys
+				if qe.tag == "AX":
+					#the qubit is the auxiliary qubit
+					pass
+				else:
+					maxLength = max(maxLength,len(er[qe]))
+					q_keys.append(qe)
 			quickSortQubit(q_keys,0,len(q_keys)-1)
 			for q in q_keys:
+				if q.tag == "AX":
+					#the qubit is an auxiliary qubit and need NOT be drawed
+					continue
 				if maxLength < 20:
 					factor = 1
 				else:
@@ -184,6 +214,7 @@ class Circuit:
 						qubitStrList = item.split(" ")[1].split(",") 
 						targetQubit = qubitStrList[len(qubitStrList) - 1]
 						controlQubit = qubitStrList[0:len(qubitStrList)-1]
+						#the index of the target qubit
 						indexOfTarget = 0
 						#get the index of the target qubit
 						for tmp in q_keys:
@@ -194,6 +225,7 @@ class Circuit:
 						
 						#draw a circle in the control qubit
 						if str(q.ids) in controlQubit:	
+							#print(indexOfTarget)
 							smaller = min(indexOfTarget,j)
 							bigger = max(indexOfTarget,j)
 							x1 = [x_position] * (bigger * partition - smaller * partition)
@@ -276,7 +308,7 @@ class Circuit:
 					#if the gate is MCU and the current qubit is the target, that is ,
 					#the current qubit isn't in the first postion, then don't export the gate
 					import re
-					if re.search(r'^(c\d-)+.$',gate) != None and str(qubitList[n].ids) != qubits[0]:
+					if re.search(r'^(c\d-)+.+$',gate) != None and str(qubitList[n].ids) != qubits[0]:
 						continue
 					if gate == "c1-c1-X":
 						gate = "Toffoli"
@@ -395,6 +427,7 @@ class Circuit:
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
 			executeRecord = self.qubitExecuteList.copy()
+
 			print("QuanSim is measuring the qubit, please wait for a while...")
 			#execute the measurement of the qubits
 			for qubit in qubitList:
@@ -509,12 +542,15 @@ class Circuit:
 			for qid in idList:
 				title += "q"
 				title += str(qid)
-			self.__printExecuteMsg(stateResult,endProbResult,gateNum,totalQubitNum) 
+			#figure out the AC qubits number and the AX qubits number
+			typeQN = self.__countACandAX(executeRecord)
+			self.__printExecuteMsg(stateResult,endProbResult,gateNum,typeQN) 
 			############################exporting############################
-			self.__exportCircuit(executeRecord)
+			self.__exportCircuit(executeRecord,typeQN)
 			self.__QASM(executeRecord)
 			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
+
 			#post the qasm code to ibm API according to the users's input:Y/N
 			ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
 			if ibmBool == 'Y' or ibmBool == 'y':
@@ -624,7 +660,7 @@ class Circuit:
 		return num
 
 	#print the executive message to cmd 
-	def __printExecuteMsg(self,stateList,probList,gateNum,totalQubitNum):
+	def __printExecuteMsg(self,stateList,probList,gateNum,typeQN):
 		#the total execute time, the unit of the time is second
 		totalTime = (self.endTime - self.beginTime).total_seconds()
 		#the total memory, the unit of the memory is MB
@@ -647,7 +683,7 @@ class Circuit:
 				funName = info[0]
 				line = info[1]
 				interactCfg.writeErrorMsg(em,funName,line)
-		msg = "total qubits: "+ str(totalQubitNum) + "\n"
+		msg = "total qubits: "+ str(typeQN[0]+typeQN[1]) + " (Auxiliary: " + str(typeQN[0]) + ")\n"
 		msg += "the number of the measured qubits: "+ str(len(gateNum['measureQubit'])) + "\n"
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
 		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"

@@ -26,7 +26,10 @@ class Qubit(BaseQubit):
 	idList = []
 	#the physical process of "preparation" is described as this function
 	#mode='theory' or 'simulator', the user manual introduce details of the arguments
-	def __init__(self,ids=None):
+
+	#if the parameter "tag" is set to True, it means that the qubit is an auxiliary qubit 
+
+	def __init__(self,tag = False,ids=None):
 		#BaseQubit.__init__(self)
 		self.matrix = [[],[]]
 		self.amplitude = [0,0]
@@ -50,6 +53,7 @@ class Qubit(BaseQubit):
 				interactCfg.writeErrorMsg(ir,funName,line)
 		self.ids = ids
 		Qubit.idList.append(ids)
+		#set the initial value of the qubit according to the mode 
 		if self.mode == 'simulator':
 			#has assignment error and gate error
 			error = interactCfg.readCfgER(ids)
@@ -70,6 +74,13 @@ class Qubit(BaseQubit):
 				interactCfg.writeErrorMsg(em,funName,line)
 		self.setAmp()
 		self.recordQubit()
+		#set the type of the qubit 
+		if tag:
+			#it means that the qubit is an auxiliary Qubit
+			self.tag = "AX"
+		else:
+			#the qubit is an actual qubit
+			self.tag = "AC"
 
 	#overwrite the function
 	def getAmp(self):
