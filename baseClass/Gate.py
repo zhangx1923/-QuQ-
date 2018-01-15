@@ -200,8 +200,10 @@ class SplitGate:
 			i += 1
 
 		cG = [[0] * (2**len(resQL))] * (2**len(resQL))
+		
 		#append the multi-controlled gate to Dict "allowGate", which is defined in baseGate.py
-		allowGate[gateName] = len(resQL)
+		#allowGate[gateName] = len(resQL)
+
 		#init the Gate instance
 		gate = Gate(resQL,cG,gateName)
 		if len(resQL) == 1:

@@ -73,7 +73,6 @@ class Qubit(BaseQubit):
 				line = info[1]
 				interactCfg.writeErrorMsg(em,funName,line)
 		self.setAmp()
-		self.recordQubit()
 		#set the type of the qubit 
 		if tag:
 			#it means that the qubit is an auxiliary Qubit
@@ -81,6 +80,7 @@ class Qubit(BaseQubit):
 		else:
 			#the qubit is an actual qubit
 			self.tag = "AC"
+		self.recordQubit()
 
 	#overwrite the function
 	def getAmp(self):
@@ -114,11 +114,20 @@ class Qubit(BaseQubit):
 				funName = info[0]
 				line = info[1]
 				interactCfg.writeErrorMsg(ee,funName,line)
-		if self in circuitInstance.qubitExecuteList:
-			del circuitInstance.qubitExecuteList[self]
-			circuitInstance.qubitNum -= 1
-		circuitInstance.qubitExecuteList[self] = []
-		circuitInstance.qubitNum += 1
+
+		if circuitInstance.withOD:
+			if self in circuitInstance.qubitExecuteList:
+				del circuitInstance.qubitExecuteListOD[self]
+				circuitInstance.qubitNumOD -= 1
+			circuitInstance.qubitExecuteListOD[self] = []
+			circuitInstance.qubitNumOD += 1		
+
+		if self.tag == "AC":
+			if self in circuitInstance.qubitExecuteList:
+				del circuitInstance.qubitExecuteList[self]
+				circuitInstance.qubitNum -= 1
+			circuitInstance.qubitExecuteList[self] = []
+			circuitInstance.qubitNum += 1
 
 	def decideProb(self, qubitList:list = None):
 		#the first dimen is probability, the second dimen is state

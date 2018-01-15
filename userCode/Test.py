@@ -1,12 +1,12 @@
 from header import *
 
 def u():
-	c = Circuit()
+	c = Circuit(True)
 	q = Qubit()
 	qList = []
 	for i in range(0,3):
 		qList.append(Qubit())
-	X(qList[0])
+	H(qList[0])
 	#Rx(PI,qList[0])
 	#X(q)
 	#QSprint(qList[0])

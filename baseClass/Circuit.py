@@ -84,6 +84,13 @@ class Circuit:
 		self.mode = interactCfg.readCfgEM()
 		#print information
 		self.__printPreMsg()
+		if withOriginalData:
+			self.withOD = True
+			self.qubitNumOD = 0
+			self.qubitExecuteListOD = {}
+		else:
+			self.withOD = False
+
 
 	#the destory function
 	def __del__(self):
@@ -117,7 +124,11 @@ class Circuit:
 			interactCfg.writeErrorMsg(ee.value,funName,line)
 
 	#figure out the number of the auxiliary qubits and the actual qubits
-	def __countACandAX(self,er):
+	def __countACandAX(self):
+		if self.withOD:
+			er = self.qubitExecuteListOD
+		else:
+			er = self.qubitExecuteList
 		AX = 0
 		AC = 0
 		for q in er:
@@ -126,6 +137,7 @@ class Circuit:
 			else:
 				AC += 1
 		return [AX,AC]
+
 
 	#draw the circuit according to the qubitExecuteList
 	#the parameter "typeQN" is a list [the number of AX qubits, the number of AC qubits]
@@ -426,7 +438,7 @@ class Circuit:
 			idList = []
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
-			executeRecord = self.qubitExecuteList.copy()
+			#executeRecord = self.qubitExecuteList.copy()
 
 			print("QuanSim is measuring the qubit, please wait for a while...")
 			#execute the measurement of the qubits
@@ -436,9 +448,6 @@ class Circuit:
 				hasMeasure.append(qubit)
 				#judge whether act qif on this qubit; if so, pass this loop and continue the next one.
 				hasQIF = False
-				for gates in executeRecord[qubit]:
-					if "qif" in gates:
-						hasQIF = True
 				if hasQIF:
 					continue
 				qs = qubit.entanglement
@@ -464,9 +473,6 @@ class Circuit:
 							hasMeasure.append(item)
 						hasQIF = False
 						#print(executeRecord[item])
-						for gates in executeRecord[item]:
-							if "qif" in gates:
-								hasQIF = True
 						if hasQIF:
 							pass
 						else:
@@ -542,14 +548,22 @@ class Circuit:
 			for qid in idList:
 				title += "q"
 				title += str(qid)
+
+
 			#figure out the AC qubits number and the AX qubits number
-			typeQN = self.__countACandAX(executeRecord)
+			typeQN = self.__countACandAX()
 			self.__printExecuteMsg(stateResult,endProbResult,gateNum,typeQN) 
 			############################exporting############################
-			self.__exportCircuit(executeRecord,typeQN)
-			self.__QASM(executeRecord)
 			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
+
+			self.__exportCircuit(self.qubitExecuteList,typeQN)
+			self.__QASM(self.qubitExecuteList)
+
+			if self.withOD:
+				self.__exportCircuit(self.qubitExecuteListOD,typeQN)
+				self.__QASM(self.qubitExecuteListOD)
+
 
 			#post the qasm code to ibm API according to the users's input:Y/N
 			ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
@@ -568,7 +582,7 @@ class Circuit:
 			info = helperFunction.get_curl_info()
 			funName = info[0]
 			line = info[1]
-			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)
+			interactCfg.writeErrorMsg("The instance is wrong, please check your code!",funName,line)
 
 
 	#remove qubitList from this instance; only the qubit has been measured, it can be removed from this instance
@@ -683,10 +697,20 @@ class Circuit:
 				funName = info[0]
 				line = info[1]
 				interactCfg.writeErrorMsg(em,funName,line)
-		msg = "total qubits: "+ str(typeQN[0]+typeQN[1]) + " (Auxiliary: " + str(typeQN[0]) + ")\n"
+
+		msg = "total qubits: "+ str(typeQN[0]+typeQN[1]) 
+		if self.withOD:
+			msg += " (Auxiliary: " + str(typeQN[0]) + ")\n"
 		msg += "the number of the measured qubits: "+ str(len(gateNum['measureQubit'])) + "\n"
-		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) + "\n"
-		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit']) + "\n"
+		
+		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) 
+		if self.withOD:
+			msg += " (Actually execute " + str(typeQN[0]) + " SGs)\n"
+
+		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit'])
+		if self.withOD:
+			msg += " (Actually execute " + str(typeQN[0]) + " DGs)\n"
+
 		msg += "executive Mode: " + self.mode + "\n"
 		msg += "single-qubit error: " + singleError + " (AVG)\n"
 		msg += "double-qubit error: " + doubleError + " (AVG)\n"	

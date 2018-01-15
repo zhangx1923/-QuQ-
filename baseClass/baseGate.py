@@ -201,20 +201,6 @@ class Gate:
 					funName = info[0]
 					line = info[1]
 					writeErrorMsg("The type of the date should be Qubit!",funName,line)	
-		try:
-			qN = allowGate[self.gateName]
-			if qN != len(ql) or 2**qN != len(self.gate):
-				raise ValueError
-		except KeyError:
-			info = self.get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("Gate: " + self.gateName + " hasn't been defined!",funName,line)
-		except ValueError:
-			info = self.get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("Gate " + self.gateName + " can't act on the quantum state composed of " + str(qN) + " qubits!",funName,line)	
 		return True	
 
 	#compution the matrix multiplication
@@ -291,17 +277,36 @@ class Gate:
 	#1.recordSingleExecution: record single gate, i.e. X,Y..
 	#2.recordMultiExecution:record multi gate, i.e. CNOT..
 	def recordSingleExecution(self,record = True):
+		c = self.__recordSE(record)
+		if c.withOD:
+			return self.__recordSE(True,c.qubitExecuteListOD)
+		return c
+
+	def recordmultiExecution(self,record = True):
+		c = self.__recordME(record)
+		if c.withOD:
+			return self.__recordME(True,c.qubitExecuteListOD)
+		return c
+
+	def __recordSE(self,record,executeList = None):
 		q = self.ql[0]
 		circuit = checkEnvironment()
 		if record == False:
 			return circuit
 		#record the execution according to the qubit.ids
 		ids = q.ids
-		exeRecord = circuit.qubitExecuteList
+		if executeList == None:
+			executeList = circuit.qubitExecuteList
+		else:
+			#if the parameter "executeList" isn't None
+			#then it means that we are recording the executive record in circuit.qubitexecutelistOD
+			if self.gateName not in allowGate:
+				return circuit
+
 		strs = self.gateName + " " + str(ids)
 		try:
 			#a qubit can only be measured once, and once the qubit was measured, you can't act any gate on it.
-			if "M "+str(ids) in exeRecord[q]:
+			if "M "+str(ids) in executeList[q]:
 				try:
 					raise ValueError
 				except ValueError:
@@ -309,7 +314,7 @@ class Gate:
 					funName = info[0]
 					line = info[1]		
 					writeErrorMsg("Qubit: q"+ str(q.ids) + " has been measured! You can't act any gate on it!",funName,line)			
-			exeRecord[q].append(strs)
+			executeList[q].append(strs)
 		except KeyError as ke:
 			info = self.get_curl_info()
 			funName = info[0]
@@ -317,12 +322,19 @@ class Gate:
 			writeErrorMsg("The current qubit is not stored in the execute list, please check your code!",funName,line)
 		return circuit
 
-	def recordmultiExecution(self,record = True):
+	def __recordME(self,record,executeList = None):
 		circuit = checkEnvironment()
 		if record == False:
 			return circuit
 		if circuit != None:
-			exeRecord = circuit.qubitExecuteList
+			if executeList == None:
+				executeList = circuit.qubitExecuteList
+			else:
+				#if the parameter "executeList" isn't None
+				#then it means that we are recording the executive record in circuit.qubitexecutelistOD
+				if self.gateName not in allowGate:
+					return circuit
+
 			#print(exeRecord)
 			strs = self.gateName + " "
 			maxLength = 0
@@ -330,8 +342,8 @@ class Gate:
 			for i in range(0,len(self.ql)):
 				ids = self.ql[i].ids
 				try:
-					length = len(exeRecord[self.ql[i]])
-					if "M " + str(ids) in exeRecord[self.ql[i]]:
+					length = len(executeList[self.ql[i]])
+					if "M " + str(ids) in executeList[self.ql[i]]:
 						raise ValueError
 				except KeyError as ke:
 					info = self.get_curl_info()
@@ -351,12 +363,11 @@ class Gate:
 			#add the multi gate string to the execution of each qubit; 
 			#and add NULL to the shorter execution to occupy the position so that we can draw the circuit easily
 			for item in self.ql:
-				while len(exeRecord[item]) < maxLength:
+				while len(executeList[item]) < maxLength:
 					tmpStr = "NULL " + str(item.ids)
-					exeRecord[item].append(tmpStr)
-				exeRecord[item].append(strs)
+					executeList[item].append(tmpStr)
+				executeList[item].append(strs)
 		return circuit
-
 
 #add noise to the gate; the noise value is read from errorRate.cfg
 #attention, only the execute mode is 'simulator', then the function is useful
