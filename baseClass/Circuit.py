@@ -438,7 +438,12 @@ class Circuit:
 			idList = []
 			gateNum = self.__countGate()
 			totalQubitNum = self.qubitNum
-			#executeRecord = self.qubitExecuteList.copy()
+			executeRecord = self.qubitExecuteList.copy()
+			if self.withOD:
+				executeRecordOD = self.qubitExecuteListOD.copy()
+
+			#figure out the AC qubits number and the AX qubits number
+			typeQN = self.__countACandAX()
 
 			print("QuanSim is measuring the qubit, please wait for a while...")
 			#execute the measurement of the qubits
@@ -549,20 +554,17 @@ class Circuit:
 				title += "q"
 				title += str(qid)
 
-
-			#figure out the AC qubits number and the AX qubits number
-			typeQN = self.__countACandAX()
 			self.__printExecuteMsg(stateResult,endProbResult,gateNum,typeQN) 
 			############################exporting############################
 			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
 
-			self.__exportCircuit(self.qubitExecuteList,typeQN)
-			self.__QASM(self.qubitExecuteList)
+			self.__exportCircuit(executeRecord,typeQN)
+			self.__QASM(executeRecord)
 
 			if self.withOD:
-				self.__exportCircuit(self.qubitExecuteListOD,typeQN)
-				self.__QASM(self.qubitExecuteListOD)
+				self.__exportCircuit(executeRecordOD,typeQN)
+				self.__QASM(executeRecordOD)
 
 
 			#post the qasm code to ibm API according to the users's input:Y/N
@@ -641,10 +643,22 @@ class Circuit:
 	def __countGate(self):
 		#the measured qubits of the circuit
 		Measure = self.measureList.copy()
-		#count the single-qubit and the double-qubit gate number of the circuit
-		Single = 0
-		Double = 0
-		Other = 0
+
+		#count the gate number of the circuit
+		Single = 0    #stands for the single-qubit gate without compiled
+		Multi = 0     #stands for the multi-qubit gate without compiled, such as c1-c1-c1-c1-X
+		
+		#only if circuit.withOD == True, then compute the following two parameter
+		SingleOD = 0  #stands for the single gate after compiled
+		DoubleOD = 0  #stands for the CNOT gate after compiled
+
+		try:
+			from baseGate import allowGate
+		except ImportError:
+			info = helperFunction.get_curl_info()
+			funName = info[0]
+			line = info[1]
+			interactCfg.writeErrorMsg("Can't import the Dict: allowGate in baseGate.py!",funName,line)
 		for key in self.qubitExecuteList:
 			for operator in self.qubitExecuteList[key]:
 				gate = operator.split(" ")[0]
@@ -655,22 +669,23 @@ class Circuit:
 				gate == "Td" or gate == "Sd" or gate == "H" or gate == "I":
 					Single += 1
 				elif gate == "CNOT":
-					Double += 1
+					Multi += 1
 				elif gate == "M":
 					continue
 				else:
-					Other += 1
+					#Other += 1
+					pass
 		#the number of the CNOT count twice when stored in the list, so we should divide 2
 		#and the number must be even number
-		if Double & 1 != 0:
+		if DoubleOD & 1 != 0:
 			#the number is odd
 			info = helperFunction.get_curl_info()
 			funName = info[0]
 			line = info[1]
 			interactCfg.writeErrorMsg("we count the CNOT gate twice, the number of this gate must be even number; \
 				but we get an odd number. Please check your code!",funName,line)
-		Double = Double // 2 
-		num = {'measureQubit':Measure,'single-qubit':Single,'double-qubit':Double,'other':Other}
+		DoubleOD = DoubleOD // 2 
+		num = {'measureQubit':Measure,'single-qubit':Single,'double-qubit':DoubleOD,'other':1}
 		return num
 
 	#print the executive message to cmd 
@@ -700,7 +715,9 @@ class Circuit:
 
 		msg = "total qubits: "+ str(typeQN[0]+typeQN[1]) 
 		if self.withOD:
-			msg += " (Auxiliary: " + str(typeQN[0]) + ")\n"
+			msg += " (Auxiliary: " + str(typeQN[0]) + ")"
+		msg += "\n"
+		
 		msg += "the number of the measured qubits: "+ str(len(gateNum['measureQubit'])) + "\n"
 		
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) 

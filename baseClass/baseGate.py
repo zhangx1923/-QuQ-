@@ -27,7 +27,7 @@ allowGate = {
 	'M':1,
 	'Rz':1,
 	'Ry':1,
-	'Rx':1
+	#'Rx':1
 }
 
 class Gate:
@@ -302,7 +302,7 @@ class Gate:
 			#then it means that we are recording the executive record in circuit.qubitexecutelistOD
 			if self.gateName not in allowGate:
 				return circuit
-
+		#print(self.gateName)
 		strs = self.gateName + " " + str(ids)
 		try:
 			#a qubit can only be measured once, and once the qubit was measured, you can't act any gate on it.
