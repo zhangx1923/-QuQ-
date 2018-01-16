@@ -37,10 +37,19 @@ class Gate:
 		if self.__checkType(ql):
 			self.ql = ql
 		
-	
-	def singleOperator(self,record = True):
+	#the method has two parameters:
+	#the former stands for whether record the gate in qubitExecuteList
+	#the latter stands fot the angle parameter of the gate, 
+	#only the parameter of Rx,Ry and Rz gate isn't None 
+	def singleOperator(self,record = True,angle = None):
 		q = self.ql[0]
-		circuit = self.recordSingleExecution(record)
+		if angle != None and self.gateName not in ["Rx","Ry","Rz"]:
+			try:
+				raise GateNameError()
+			except GateNameError as gne:
+				info = self.get_curl_info()
+				writeErrorMsg(gne,info[0],info[1])
+		circuit = self.recordSingleExecution(record,angle)
 		if circuit == None:
 			return False
 		qs = q.entanglement
@@ -277,19 +286,19 @@ class Gate:
 	#or the current qubit is not stored in the executeList
 	#1.recordSingleExecution: record single gate, i.e. X,Y..
 	#2.recordMultiExecution:record multi gate, i.e. CNOT..
-	def recordSingleExecution(self,record = True):
-		c = self.__recordSE(record)
+	def recordSingleExecution(self,record = True,angle = None):
+		c = self.__recordSE(record,None,angle)
 		if c.withOD:
-			return self.__recordSE(True,c.qubitExecuteListOD)
+			return self.__recordSE(True,c.qubitExecuteListOD,angle)
 		return c
 
-	def recordmultiExecution(self,record = True):
-		c = self.__recordME(record)
+	def recordmultiExecution(self,record = True,angle = None):
+		c = self.__recordME(record,None,angle)
 		if c.withOD:
-			return self.__recordME(True,c.qubitExecuteListOD)
+			return self.__recordME(True,c.qubitExecuteListOD,angle)
 		return c
 
-	def __recordSE(self,record,executeList = None):
+	def __recordSE(self,record,executeList = None,angle = None):
 		q = self.ql[0]
 		circuit = checkEnvironment()
 		if record == False:
@@ -304,7 +313,20 @@ class Gate:
 			if self.gateName not in allowGate:
 				return circuit
 		#print(self.gateName)
-		strs = self.gateName + " " + str(ids)
+
+		if angle == None:
+			strs = self.gateName + " " + str(ids)
+		else:
+			#change format of the parameter "angle" to multiples of "PI"
+			tmpAngle = ""
+			multiplesList = str(angle / math.pi).split(".")
+			if len(multiplesList[1]) > 3:
+				tmpAngle = multiplesList[0] + "." + multiplesList[1][0:3]
+			else:
+				tmpAngle = multiplesList[0] + "." + multiplesList[1]
+			angleS = tmpAngle + "*pi"
+			strs = self.gateName + "(" + angleS + ") " + str(ids)
+
 		try:
 			#a qubit can only be measured once, and once the qubit was measured, you can't act any gate on it.
 			if "M "+str(ids) in executeList[q]:
@@ -323,7 +345,7 @@ class Gate:
 			writeErrorMsg("The current qubit is not stored in the execute list, please check your code!",funName,line)
 		return circuit
 
-	def __recordME(self,record,executeList = None):
+	def __recordME(self,record,executeList = None,angle = None):
 		circuit = checkEnvironment()
 		if record == False:
 			return circuit
@@ -337,7 +359,19 @@ class Gate:
 					return circuit
 
 			#print(exeRecord)
-			strs = self.gateName + " "
+			if angle == None:
+				strs = self.gateName + " "
+			else:
+				#change format of the parameter "angle" to multiples of "PI"
+				tmpAngle = ""
+				multiplesList = str(angle / math.pi).split(".")
+				if len(multiplesList[1]) > 3:
+					tmpAngle = multiplesList[0] + "." + multiplesList[1][0:3]
+				else:
+					tmpAngle = multiplesList[0] + "." + multiplesList[1]
+				angleS = tmpAngle + "*pi"
+				strs = self.gateName + "(" + angleS + ") "
+
 			maxLength = 0
 			#make up the multi gate string
 			for i in range(0,len(self.ql)):

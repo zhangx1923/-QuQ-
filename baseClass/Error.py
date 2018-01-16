@@ -61,9 +61,9 @@ class CodeError(Exception):
 
 #the gate name is not defined in this platfrom
 class GateNameError(Exception):
-	def __init__(self,gateName,msg=None):
+	def __init__(self,msg=None):
 		if msg == None:
-			self.value = "Gate: " + gateName + " has not defined in this platfrom!"
+			self.value = "There is gates which have not defined in this platfrom!"
 		else:
 			self.value = msg
 	def __str__(self):

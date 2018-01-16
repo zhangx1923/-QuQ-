@@ -195,6 +195,11 @@ class Circuit:
 					if gate == 'NULL':
 						x_position += 5 / factor
 						continue
+
+					#remove the parameter of the gate
+					if re.search(r'^R\w{1}\(.+\)$',gate) != None:
+						gate = gate.split("(")[0]
+
 					#it means that the gate is a single-qubit gate
 					if gate in styleDic:
 						gateName = styleDic[gate][0]
@@ -213,6 +218,11 @@ class Circuit:
 							gate = "c1-X"
 						singleGateList = gate.split("-")
 						U = singleGateList[len(singleGateList)-1]
+
+						#remove the parameter of the gate
+						if re.search(r'^R\w{1}\(.+\)$',U) != None:
+							U = U.split("(")[0]
+
 						try:
 							if U == "X":
 								gateName = "+"
@@ -699,11 +709,11 @@ class Circuit:
 						continue
 					elif gate == "CNOT":
 						DoubleOD += 1
-					elif gate in allowGate:
+					elif gate in allowGate or re.search(r'^R\w{1}\(.+\)$',gate) != None:
 						SingleOD += 1
 					else:
 						try:
-							raise GateNameError("Gate:" + gate +" is generated, but the gate isn't defined in allowGate!")
+							raise GateNameError("Gate:" + gate +" hasn't defined in allowGate!")
 						except GateNameError as gne:
 							info = helperFunction.get_curl_info()
 							interactCfg.writeErrorMsg(gne,info[0],info[1])
@@ -798,9 +808,9 @@ class Circuit:
 		#write the message to cmd and the file named "result.log"
 		print(msg)
 
-		print("\n")
+		print("\r")
 		self.__callIBM()
-		print("\n")
+		print("\r")
 		
 		try:
 			file = open(self.urls + "/result.log","a")

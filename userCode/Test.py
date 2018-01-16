@@ -6,7 +6,8 @@ def u():
 	qList = []
 	for i in range(0,3):
 		qList.append(Qubit())
-	Rz(PI/2,qList[0])
+	Rz(PI/13,qList[0])
+	Rx(PI/2,qList[0])
 	#Rx(PI,qList[0])
 	#X(q)
 	#QSprint(qList[0])
@@ -17,8 +18,8 @@ def u():
 	# 	if b:
 	# 		CNOT(qList[1],q)
 	#Rx(PI/2,q)
-	# with DMif([qList[0],qList[1]],[1,0]) as dmo:
-	# 	#q = dmo.Rz(PI/2,q)[-1]
+	with DMif([qList[0],qList[1]],[1,0]) as dmo:
+		q = dmo.X(q)[-1]
 	# 	q = dmo.X(q)[-1]
 		#q = dmo.Ry(PI,q)[-1]
 		#q = dmo.Rz(-PI/2,q)[-1]

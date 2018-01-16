@@ -58,6 +58,7 @@ class DMO:
 		#CNOT gate
 		if fullGName == "c1-X":
 			return CNOT(ql[0],tq)
+
 		#the return value is a list consisted of all the control-qubits and the target-qubit	
 		if re.match(r'^(c\d-){1}.{1,2}$',fullGName) != None:
 			#split the CU and execute the computation
