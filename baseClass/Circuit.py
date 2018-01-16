@@ -797,9 +797,11 @@ class Circuit:
 		msg += "the experiment: " + self.name
 		#write the message to cmd and the file named "result.log"
 		print(msg)
+
 		print("\n")
 		self.__callIBM()
 		print("\n")
+		
 		try:
 			file = open(self.urls + "/result.log","a")
 			if self.ibm:
