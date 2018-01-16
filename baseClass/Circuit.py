@@ -61,18 +61,12 @@ class Circuit:
 		self.name = experimentName
 		#use this value to uniquely identify
 		self.ids = id(self)
-		#create a new folder to save the experiment
-		if os.path.exists(ResLocation+self.name) == False:
-			#the whole result of the experiment is stored in this folder
-			try:
-				os.makedirs(ResLocation+self.name) 
-			except OSError:
-				info = helperFunction.get_curl_info()
-				funName = info[0]
-				line = info[1]
-				interactCfg.writeErrorMsg("Can't create the new folder '" + self.name + "'!",funName,line)	
 
-		self.urls = ResLocation+self.name
+		folderName = ResLocation+self.name
+		#create a new folder to save the experiment
+		helperFunction.createFolder(folderName)
+
+		self.urls = folderName
 		#each qubit stands for a individual dimension
 		#see /doc/Class-relation.doc for details
 		self.qubitExecuteList = {}
@@ -142,9 +136,11 @@ class Circuit:
 
 	#draw the circuit according to the qubitExecuteList
 	#the parameter "typeQN" is a list [the number of AX qubits, the number of AC qubits]
-	def __exportCircuit(self,er,typeQN):
+	def __exportCircuit(self,er,typeQN,fileLocation):
+		global alertMsg
 		if self.checkEnvironment():
-			print("begin drawing the circuit...")
+			if alertMsg:
+				print("begin drawing the circuit...")
 			#set the canvas
 			Fig = plt.figure('circuit',figsize=(12,6))                      
 			#set the axis off
@@ -276,9 +272,11 @@ class Circuit:
 			############################the gate has completed########################################
 			#plt.show()
 			#save the circuit
-			Fig.savefig(self.urls + "/circuit.jpg")			
+			fileName = fileLocation + "circuit.jpg"
+			Fig.savefig(fileName)			
 			#print("the circuit has been stored in " + self.urls.split("..")[1]  + "/circuit.jpg")
-			print("the circuit has been drawn!\n")
+			if alertMsg:
+				print("the circuit has been drawn!\n")
 			return True
 		else:
 			info = helperFunction.get_curl_info()
@@ -287,11 +285,14 @@ class Circuit:
 			interactCfg.writeErrorMsg("the circuit instance is wrong, please check your code",funName,line)
 
 	#translate the code of the current circuit to QASM, so that they can be executed on IBMQX
-	def __QASM(self,er):
-		print("begin export the QASM code of the circuit...")
+	def __QASM(self,er,fileLocation):
+		global alertMsg
+		if alertMsg:
+			print("begin export the QASM code of the circuit...")
 		if self.checkEnvironment():
 			qubitNum = len(er.keys())
-			code = open(self.urls+"/QASM.txt","w")
+			fileName = fileLocation + "QASM.txt"
+			code = open(fileName,"w")
 			#get the ids of the qubit
 			qubitList = []
 			for q in er.keys():
@@ -347,7 +348,8 @@ class Circuit:
 					code.write(";")
 					code.write("\n")					
 			#print("the code has been stored in " + self.urls.split("..")[1] + "/qasm.txt")
-			print("the QASM code has been exported!\n")
+			if alertMsg:
+				print("the QASM code has been exported!\n")
 			return True
 		else:
 			info = helperFunction.get_curl_info()
@@ -559,14 +561,33 @@ class Circuit:
 			############################exporting############################
 			self.__exportChart(stateResult,endProbResult,title)
 			self.__exportOriData(stateResult,timesList)
+			############################exporting############################
 
-			self.__exportCircuit(executeRecord,typeQN)
-			self.__QASM(executeRecord)
+			############################get the QASM and circuit######################################
+			global alertMsg
+			#use this global parameter to guarantee the alert message of getting 
+			#QASM.txt and circuit.jpg will be printed for only once
+			alertMsg = True
+			#all the whole gate information are stored in "expName/Logical-Level/"
+			fileLocation = self.urls+"/Logical-Level/"
+			#create the folder
+			helperFunction.createFolder(fileLocation)
 
+			self.__exportCircuit(executeRecord,typeQN,fileLocation)
+			self.__QASM(executeRecord,fileLocation)
+			alertMsg = False
+
+			#if user want to get the original data, then call the following methods
 			if self.withOD:
-				self.__exportCircuit(executeRecordOD,typeQN)
-				self.__QASM(executeRecordOD)
+				#in this case, we should give the folder name of the QASM.txt and circuit.jpg
+				#all the actually executive information are stored in "expName/Physical-Level/"
+				fileLocation = self.urls+"/Physical-Level/"
+				#create the folder
+				helperFunction.createFolder(fileLocation)
 
+				#self.__exportCircuit(executeRecordOD,typeQN,fileLocation)
+				self.__QASM(executeRecordOD,fileLocation)
+			############################get the QASM and circuit######################################
 
 			#post the qasm code to ibm API according to the users's input:Y/N
 			ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
@@ -771,6 +792,7 @@ class Circuit:
 			line = info[1]
 			interactCfg.writeErrorMsg(io,funName,line)
 		return True
+
 	def __printPreMsg(self):
 		msg = "\n"
 		msg += "-"*80 + "\n"
@@ -789,6 +811,7 @@ class Circuit:
 			line = info[1]
 			interactCfg.writeErrorMsg(io,funName,line)
 		return True			
+
 	#export the original data of the experiment to the originalData.csv
 	def __exportOriData(self,stateList:list,timesList:list):
 		print("begin exporting original date to csv...")
