@@ -345,6 +345,7 @@ def CNOT(q1:Qubit,q2:Qubit,record = True):
 #if the parameter "result" is "False", then the result of the measurement won't be appeared in the end result 
 def M(q:Qubit,result = True):
 	I = [[1,0],[0,1]]
+	#print([q])
 	gate = Gate([q],I,"M")
 	return gate.MOperator(result)
 

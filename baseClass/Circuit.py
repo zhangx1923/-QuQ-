@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 import csv
+import re
 
 #the circuit.py will use this one 
 styleDic = {
@@ -319,7 +320,7 @@ class Circuit:
 						gate = "c1-X"
 					#if the gate is MCU and the current qubit is the target, that is ,
 					#the current qubit isn't in the first postion, then don't export the gate
-					import re
+					
 					if re.search(r'^(c\d-)+.+$',gate) != None and str(qubitList[n].ids) != qubits[0]:
 						continue
 					if gate == "c1-c1-X":
@@ -646,7 +647,7 @@ class Circuit:
 
 		#count the gate number of the circuit
 		Single = 0    #stands for the single-qubit gate without compiled
-		Multi = 0     #stands for the multi-qubit gate without compiled, such as c1-c1-c1-c1-X
+		Multi = 0.0     #stands for the multi-qubit gate without compiled, such as c1-c1-c1-c1-X
 		
 		#only if circuit.withOD == True, then compute the following two parameter
 		SingleOD = 0  #stands for the single gate after compiled
@@ -663,29 +664,45 @@ class Circuit:
 			for operator in self.qubitExecuteList[key]:
 				gate = operator.split(" ")[0]
 				#the gate NULL is to occupy the position
-				if gate == "NULL":
+				if gate == "NULL" or gate == "M":
 					continue
-				if gate == "X" or gate == "Y" or gate == "Z" or gate == "S" or gate == "T" or \
-				gate == "Td" or gate == "Sd" or gate == "H" or gate == "I":
-					Single += 1
-				elif gate == "CNOT":
-					Multi += 1
-				elif gate == "M":
-					continue
+				#the format of the gate is c1-c0-X...
+				if re.search(r'^(c\d-)+.+$',gate) != None:
+					#if the gate is c1-c1-X, then actually we count the gate for 3 times
+					n = len(re.findall("-",gate)) + 1
+					Multi += 1/n
 				else:
-					#Other += 1
-					pass
-		#the number of the CNOT count twice when stored in the list, so we should divide 2
-		#and the number must be even number
-		if DoubleOD & 1 != 0:
-			#the number is odd
-			info = helperFunction.get_curl_info()
-			funName = info[0]
-			line = info[1]
-			interactCfg.writeErrorMsg("we count the CNOT gate twice, the number of this gate must be even number; \
-				but we get an odd number. Please check your code!",funName,line)
-		DoubleOD = DoubleOD // 2 
-		num = {'measureQubit':Measure,'single-qubit':Single,'double-qubit':DoubleOD,'other':1}
+					Single += 1
+		if self.withOD:
+			for key in self.qubitExecuteListOD:
+				for operator in self.qubitExecuteListOD[key]:
+					gate = operator.split(" ")[0]
+					#the gate NULL is to occupy the position
+					if gate == "NULL" or gate == "M":
+						continue
+					elif gate == "CNOT":
+						DoubleOD += 1
+					elif gate in allowGate:
+						SingleOD += 1
+					else:
+						try:
+							raise GateNameError("Gate:" + gate +" is generated, but the gate isn't defined in allowGate!")
+						except GateNameError as gne:
+							info = helperFunction.get_curl_info()
+							interactCfg.writeErrorMsg(gne,info[0],info[1])
+			#the number of the CNOT count twice when stored in the list, so we should divide 2
+			#and the number must be even number
+			if DoubleOD & 1 != 0:
+				#the number is odd
+				try:
+					raise CodeError("We count the CNOT gate twice in <QuQ>, and the number of CNOT \
+						must be an even number. However, we got an odd number! Please check your code!")
+				except CodeError as ce:
+					info = helperFunction.get_curl_info()
+					interactCfg.writeErrorMsg(ce,info[0],info[1])
+			DoubleOD = DoubleOD // 2 
+		num = {'measureQubit':Measure,'single-qubit':Single,'multi-qubit':int(Multi+0.5),\
+		'single-qubitOD':SingleOD,'double-qubit':DoubleOD}
 		return num
 
 	#print the executive message to cmd 
@@ -722,11 +739,13 @@ class Circuit:
 		
 		msg += "the number of single-qubit gate: " + str(gateNum['single-qubit']) 
 		if self.withOD:
-			msg += " (Actually execute " + str(typeQN[0]) + " SGs)\n"
+			msg += " (Actually execute " + str(gateNum['single-qubitOD']) + " Single Gates)"
+		msg += "\n"
 
-		msg += "the number of double-qubit gate: " + str(gateNum['double-qubit'])
+		msg += "the number of multi-qubit gate: " + str(gateNum['multi-qubit'])
 		if self.withOD:
-			msg += " (Actually execute " + str(typeQN[0]) + " DGs)\n"
+			msg += " (Actually execute " + str(gateNum['double-qubit']) + " CNOTs)"
+		msg += "\n"
 
 		msg += "executive Mode: " + self.mode + "\n"
 		msg += "single-qubit error: " + singleError + " (AVG)\n"

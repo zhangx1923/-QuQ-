@@ -185,6 +185,7 @@ class Gate:
 	def __checkType(self,ql:list):
 		for q in ql:
 			types = type(q)
+			#print(types)
 			if types == Bit:
 				try:
 					raise TypeError
