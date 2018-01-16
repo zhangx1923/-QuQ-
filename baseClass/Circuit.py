@@ -77,14 +77,19 @@ class Circuit:
 		self.measureList = []
 		#record the execute mode of the current instance
 		self.mode = interactCfg.readCfgEM()
-		#print information
-		self.__printPreMsg()
+
 		if withOriginalData:
 			self.withOD = True
-			self.qubitNumOD = 0
-			self.qubitExecuteListOD = {}
 		else:
 			self.withOD = False
+
+		#print information and decide whether execute IBMQX
+		self.ibm = False#whether execute experiments on IBM platform
+		self.__printPreMsg()
+
+		if self.withOD:
+			self.qubitNumOD = 0
+			self.qubitExecuteListOD = {}		
 
 
 	#the destory function
@@ -588,18 +593,9 @@ class Circuit:
 				#self.__exportCircuit(executeRecordOD,typeQN,fileLocation)
 				self.__QASM(executeRecordOD,fileLocation)
 			############################get the QASM and circuit######################################
-
-			#post the qasm code to ibm API according to the users's input:Y/N
-			ibmBool = input("Do you want to execute your circuit on IBMQX? [Y/N]")
-			if ibmBool == 'Y' or ibmBool == 'y':
-				#yes
+			if self.ibm:
 				ibm = IBMQX()
 				ibm.executeQASM()
-			elif ibmBool == 'N' or ibmBool == 'n':
-				#no
-				pass
-			else:
-				print("Invalid input! Only 'Y' or 'N' is allowed! ")
 			#call the destory function to clean the current instance
 			self.__del__()
 		else:
@@ -801,8 +797,16 @@ class Circuit:
 		msg += "the experiment: " + self.name
 		#write the message to cmd and the file named "result.log"
 		print(msg)
+		print("\n")
+		self.__callIBM()
+		print("\n")
 		try:
 			file = open(self.urls + "/result.log","a")
+			if self.ibm:
+				boolStr = "True"
+			else:
+				boolStr = "False"
+			file.write("Will the experiment be executed on IBMQX?    "+ boolStr + "\n")
 			file.write(msg)
 			file.close()
 		except IOError as io:
@@ -832,5 +836,25 @@ class Circuit:
 		#print("the csv file has been stored in " + self.urls.split("..")[1]  + "/originalData.csv")
 		print("the original data has been exported!\n")
 		return True
+
+	#run the experiment on IBMQX by class: IBMQX
+	def __callIBM(self):
+		boolP = True
+		#post the qasm code to ibm API according to the users's input:Y/N
+		while boolP:
+			boolP = False
+			ibmBool = input("Do you want to execute your experiment on IBMQX? [Y/N]")
+			if ibmBool == 'Y' or ibmBool == 'y':
+				#yes
+				self.ibm = True
+				if self.withOD == False:
+					#the Open-QASM is relied on the physical-level qasm.txt
+					self.withOD = True
+			elif ibmBool == 'N' or ibmBool == 'n':
+				#no
+				pass
+			else:
+				boolP = True
+				print("Invalid input: Only 'Y' or 'N' is allowed!")
 
 		

@@ -28,7 +28,9 @@ qasmDic = {
 	"CNOT":"cx",
 	"Td":"tdg",
 	"Sd":"sdg",
-	"M":"measure"
+	"M":"measure",
+	"Rz":"u1",
+	"Ry":"u3"
 }
 
 #the max execute times is made by IBM stuff
@@ -113,7 +115,7 @@ class IBMQX:
 	def __translateQASM(self,c):
 		global QASM
 		#the code has been store in circuit.url/QASM.txt
-		codeLocation = c.urls + "/QASM.txt"
+		codeLocation = c.urls + "/Physical-Level/QASM.txt"
 		#this function must be called after circuit.execute()
 		if os.path.exists(codeLocation) == False:
 			info = get_curl_info()
@@ -121,68 +123,29 @@ class IBMQX:
 			line = info[1]
 			writeErrorMsg("The QASM code hasn't been generated, please check your code!",funName,line)	
 		file = open(codeLocation)	
-		code = file.readlines()	
+		codes = file.readlines()	
 		file.close()
 
-		for item in code:
+		for item in codes:
 			tmpCode = ""
 			tmp = item.split(" ")
 			gate = tmp[0]
 			#if the gate is M: M q[0] -> c[0], we have to get the tmp[1:len]
 			qubitL = tmp[1:len(tmp)]
-			sg = SplitGate()
-			if gate in qasmDic:
+			try:
 				gate = qasmDic[gate]
+				if gate == "u1" or gate == "u3":
+					pass
+					#the gate with parameter
 				tmpCode += gate + " "
 				for q in qubitL:
 					tmpCode += q
-				QASM.append(tmpCode)
-			else:
-				tmpQASM = ""
-				#the gate should be splited into components
-				if re.search(r'^(c\d-).$',gate) != None :
-					tmpQASM = sg.CU()
-				elif gate == "Toffoli":
-					tmpQASM = sg.MCU(["cq-0","cq-1"],"tq-0")
-				elif re.search(r'^(c\d-)+.$',gate) != None:
-					tmpQASM = sg.MCU()
-				else:
-					info = get_curl_info()
-					funName = info[0]
-					line = info[1]
-					writeErrorMsg("Only MCU is allowed! CMU and MCMU will be added if needed!",funName,line)					
-				itemList = tmpQASM.split(";")
-				#the gate can't be M
-				tmpQL = qubitL[0]
-				#only multi-controlled qubit with one-target qubit gate is allowed for now
-				#the one-control qubit with multi-target qubits gate
-				#and multi-controlled qubit with multi-target qubit gate will be added in the future if needed
-				
-				qubits = tmpQL.split(";")[0].split("\n")[0].split(",")
-				controlQL = qubits[0:len(qubits)-1]
-				targetQL = qubits[len(qubits)-1:len(qubits)]
-				for item in itemList:
-					if item == "":
-						continue
-					tmpCode = ""
-					s = item.split(" ")[0]
-					gate = qasmDic[s]
-					tmpCode += gate + " "
-					tmp = item.split(" ")[1].split(",")
-					for t in range(0,len(tmp)):
-						qType = tmp[t].split("-")[0]
-						qID = tmp[t].split("-")[1]
-						actQ = ""
-						if qType == 'cq':
-							actQ = controlQL[int(qID)]
-						else:
-							actQ = targetQL[int(qID)]
-						tmpCode += actQ
-						if t == len(tmp) - 1:
-							tmpCode += ";\n"
-						else:
-							tmpCode += ","
-					QASM.append(tmpCode)
+			except KeyError:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+			#print(tmpCode)
+			QASM.append(tmpCode)
 
 
 	#adjust the QASM code, which is producted by circuit.QASM(), so that the qubits can satisfy the constraint
