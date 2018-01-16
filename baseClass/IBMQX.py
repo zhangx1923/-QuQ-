@@ -133,9 +133,17 @@ class IBMQX:
 			#if the gate is M: M q[0] -> c[0], we have to get the tmp[1:len]
 			qubitL = tmp[1:len(tmp)]
 			try:
+				para = None
+				if re.search(r'^R\w{1}\(.+\)$',gate) != None:
+					#the gate is Rn and has the parameter
+					para = gate.split("(")[1].split(")")[0]
+					gate = gate.split("(")[0]
+
 				gate = qasmDic[gate]
-				if gate == "u1" or gate == "u3":
-					pass
+				if gate == "u1":
+					gate += "(" + para + ")"
+				if gate == "u3":
+					gate += "(" + para + ",0,0)"
 					#the gate with parameter
 				tmpCode += gate + " "
 				for q in qubitL:
