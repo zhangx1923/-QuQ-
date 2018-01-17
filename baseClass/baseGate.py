@@ -41,7 +41,7 @@ class Gate:
 	#the former stands for whether record the gate in qubitExecuteList
 	#the latter stands fot the angle parameter of the gate, 
 	#only the parameter of Rx,Ry and Rz gate isn't None 
-	def singleOperator(self,record = True,angle = None):
+	def singleOperator(self,record = True,angle = None,forceQuit = False):
 		q = self.ql[0]
 		if angle != None and self.gateName not in ["Rx","Ry","Rz"]:
 			try:
@@ -49,9 +49,9 @@ class Gate:
 			except GateNameError as gne:
 				info = self.get_curl_info()
 				writeErrorMsg(gne,info[0],info[1])
-		circuit = self.recordSingleExecution(record,angle)
-		if circuit == None:
-			return False
+
+		circuit = self.recordSingleExecution(record,angle,forceQuit)
+
 		qs = q.entanglement
 		noise = Noise(self.ql)
 		v = noise.simNoise(self.gate)
@@ -64,7 +64,7 @@ class Gate:
 			q.setMatrix(result)		
 		return q
 	
-	def CNOTOperator(self,record = True):
+	def CNOTOperator(self,record = True,forceQuit = False):
 		q1 = self.ql[0]
 		q2 = self.ql[1]
 
@@ -78,9 +78,8 @@ class Gate:
 			line = info[1]
 			writeErrorMsg(ce,funName,line)	
 		
-		circuit = self.recordmultiExecution(record)
-		if circuit == None:
-			return False
+		circuit = self.recordmultiExecution(record,None,forceQuit)
+
 		noise = Noise(self.ql)
 		v = noise.simNoise(self.gate)
 		del noise
@@ -152,8 +151,7 @@ class Gate:
 		if result == True:
 			#store the measurement qubit in the self.measureList
 			circuit.measureList.append(q)
-			if circuit == None:
-				return None
+
 		return q.degenerate()
 		#return data.degenerate()
 
@@ -286,13 +284,19 @@ class Gate:
 	#or the current qubit is not stored in the executeList
 	#1.recordSingleExecution: record single gate, i.e. X,Y..
 	#2.recordMultiExecution:record multi gate, i.e. CNOT..
-	def recordSingleExecution(self,record = True,angle = None):
+	def recordSingleExecution(self,record = True,angle = None,forceQuit = False):
+		#only Mif and Qif will give the forceQuit to True
+		#if forceQuit is true, then end this method directly
+		if forceQuit:
+			return None
 		c = self.__recordSE(record,None,angle)
 		if c.withOD:
 			return self.__recordSE(True,c.qubitExecuteListOD,angle)
 		return c
 
-	def recordmultiExecution(self,record = True,angle = None):
+	def recordmultiExecution(self,record = True,angle = None,forceQuit = False):
+		if forceQuit:
+			return None
 		c = self.__recordME(record,None,angle)
 		if c.withOD:
 			return self.__recordME(True,c.qubitExecuteListOD,angle)
@@ -305,6 +309,7 @@ class Gate:
 			return circuit
 		#record the execution according to the qubit.ids
 		ids = q.ids
+
 		if executeList == None:
 			executeList = circuit.qubitExecuteList
 		else:
@@ -337,7 +342,9 @@ class Gate:
 					funName = info[0]
 					line = info[1]		
 					writeErrorMsg("Qubit: q"+ str(q.ids) + " has been measured! You can't act any gate on it!",funName,line)			
+
 			executeList[q].append(strs)
+
 		except KeyError as ke:
 			info = self.get_curl_info()
 			funName = info[0]

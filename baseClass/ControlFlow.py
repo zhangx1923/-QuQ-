@@ -1,7 +1,7 @@
 from baseCF import *
 from Gate import *
 from Circuit import *
-from DMO import DMO
+from DMO import DMO,MO
 
 #a single qubit can be used as the guard; 
 #if there is more the one qubit in the guard, you should pass these qubits as a list
@@ -16,16 +16,16 @@ class Qif(ControlFlow):
 		for q in self.ql:
 			q1 = Qubit(True)
 			q2 = Qubit(True)
-			H(q1)
-			CNOT(q1,q2)
-			CNOT(q,q1)
-			H(q)
-			CNOT(q1,q2)
-			H(q2)
-			CNOT(q,q2)
-			H(q2)
+			H(q1,False)
+			CNOT(q1,q2,False)
+			CNOT(q,q1,False)
+			H(q,False)
+			CNOT(q1,q2,False)
+			H(q2,False)
+			CNOT(q,q2,False)
+			H(q2,False)
 			#restore the state of the Qubit "q"
-			H(q)
+			H(q,False)
 			#destory the auxiliary qubits "q1" and "q2"
 			q2 = M(q2,False)
 			q1 = M(q1,False)
@@ -57,21 +57,11 @@ class Mif(ControlFlow):
 		ControlFlow.__init__(self,q,v)
 	#this function is measure-based quantum if
 	def __enter__(self):
-		resList = []
-		for i in range(0,len(self.ql)):
-			self.ql[i] = M(self.ql[i],False)
-			#print(Circuit.qubitExecuteList)
-			#Bit
-			resList.append(self.ql[i].value)
-		if len(self.vl) == 1:
-			for r in resList:
-				if r != self.vl[0]:
-					return False
-		else:
-			for j in range(0,len(resList)):
-				if resList[j] != self.vl[j]:
-					return False
-		return True	
+		mo = MO(self.ql,self.vl)
+		#mo.bool stands for the control guard
+		return mo
+
+
 
 
 

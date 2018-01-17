@@ -3,6 +3,7 @@ from baseGate import *
 
 #the dict will be used in SplitGate of Gate.py
 elementGate = {
+	"X":"CNOT cq-0,tq-0;",
 	"Y":"Sd tq-0;CNOT cq-0,tq-0;S tq-0;",
 	"Z":"H tq-0;CNOT cq-0,tq-0;H tq-0;",
 	"H":"H tq-0;Sd tq-0;CNOT cq-0,tq-0;H tq-0;T tq-0;CNOT cq-0,tq-0;T tq-0;H tq-0;S tq-0;X tq-0;S cq-0;",
@@ -260,85 +261,87 @@ class SplitGate:
 			resQL.append(tq)
 		return resQL
 
-def X(q:Qubit,record = True):
+#record stands for whether record the gate in qubitExecuteList
+#the forceQuit stands for whether record the gate in qubitExecuteList and qubitExecuteListOD 
+def X(q:Qubit,record = True,forceQuit = False):
 	X = [[0,1],[1,0]]
 	gate = Gate([q],X,"X")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
-def Y(q:Qubit,record = True):
+def Y(q:Qubit,record = True,forceQuit = False):
 	Y = [[0,-1j],[1j,0]]
 	gate = Gate([q],Y,"Y")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
-def Z(q:Qubit,record = True):
+def Z(q:Qubit,record = True,forceQuit = False):
 	Z = [[1,0],[0,-1]]
 	gate = Gate([q],Z,"Z")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
-def I(q:Qubit,record = True):
+def I(q:Qubit,record = True,forceQuit = False):
 	I = [[1,0],[0,1]]
 	gate = Gate([q],I,"I")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
 
-def H(q:Qubit,record = True):
+def H(q:Qubit,record = True,forceQuit = False):
 	H = [[1/math.sqrt(2),1/math.sqrt(2)],[1/math.sqrt(2),-1/math.sqrt(2)]]
 	gate = Gate([q],H,"H")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
-def S(q:Qubit,record = True):
+def S(q:Qubit,record = True,forceQuit = False):
 	S = [[1,0],[0,1j]]
 	gate = Gate([q],S,"S")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
-def Sd(q:Qubit,record = True):
+def Sd(q:Qubit,record = True,forceQuit = False):
 	Sd = [[1,0],[0,-1j]]
 	gate = Gate([q],Sd,"Sd")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
 
-def T(q:Qubit,record = True):
+def T(q:Qubit,record = True,forceQuit = False):
 	T = [[1,0],[0,(1+1j)/math.sqrt(2)]]
 	gate = Gate([q],T,"T")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
-def Td(q:Qubit,record = True):
+def Td(q:Qubit,record = True,forceQuit = False):
 	Td = [[1,0],[0,(1-1j)/math.sqrt(2)]]
 	gate = Gate([q],Td,"Td")
-	return gate.singleOperator(record)
+	return gate.singleOperator(record,forceQuit = forceQuit)
 
 #all the single qubit gate can be constructed by the following two gate according to ZYZ decompose
 #the argument "phi" is a rotation angle in radians
-def Rz(phi,q:Qubit,record = True):
+def Rz(phi,q:Qubit,record = True,forceQuit = False):
 	pows = 1j*phi / 2
 	Rz = [[cmath.exp(-pows),0],[0,cmath.exp(pows)]]
 	gate = Gate([q],Rz,"Rz")
-	return gate.singleOperator(record,phi)
+	return gate.singleOperator(record,phi,forceQuit = forceQuit)
 
-def Ry(theta,q:Qubit,record = True):
+def Ry(theta,q:Qubit,record = True,forceQuit = False):
 	Ry = [[math.cos(theta/2),-math.sin(theta/2)],[math.sin(theta/2),math.cos(theta/2)]]
 	gate = Gate([q],Ry,"Ry")
-	return gate.singleOperator(record,theta)
+	return gate.singleOperator(record,theta,forceQuit = forceQuit)
 
 #this gate is implemented by Rz and Ry
-def Rx(phi,q:Qubit,record = True):
+def Rx(phi,q:Qubit,record = True,forceQuit = False):
 	PI = math.pi
 	I = [[1,0],[0,1]]
 	q = Rz(PI/2,q,False)
 	q = Ry(-phi,q,False)
 	q = Rz(-PI/2,q,False)
 	gate = Gate([q],I,"Rx")
-	gate.recordSingleExecution(True,phi)
+	gate.recordSingleExecution(True,phi,forceQuit = forceQuit)
 	return q
 
 
 #return a Qubits, which has two entanglement qubit
 #the two qubit can be independent qubits, or one of them are a part of engtanlement 
 #the first qubit is the control-qubit, the second qubit is the target-qubit
-def CNOT(q1:Qubit,q2:Qubit,record = True):
+def CNOT(q1:Qubit,q2:Qubit,record = True,forceQuit = False):
 	CNOT = [[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,0,1,0]]
 	gate = Gate([q1,q2],CNOT,"CNOT")
-	return gate.CNOTOperator(record)
+	return gate.CNOTOperator(record,forceQuit = forceQuit)
 
 
 #execute the measurement, the types of the first argument must be Qubit; the second argument is optional,
@@ -348,6 +351,7 @@ def M(q:Qubit,result = True):
 	#print([q])
 	gate = Gate([q],I,"M")
 	return gate.MOperator(result)
+
 
 #Toffoli gate, three input and three output
 def Toffoli(q1:Qubit,q2:Qubit,q3:Qubit):

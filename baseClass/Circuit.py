@@ -200,7 +200,6 @@ class Circuit:
 					if re.search(r'^R\w{1}\(.+\)$',gate) != None:
 						gate = gate.split("(")[0]
 
-					#it means that the gate is a single-qubit gate
 					if gate in styleDic:
 						gateName = styleDic[gate][0]
 						gateColor = styleDic[gate][1]
@@ -212,6 +211,9 @@ class Circuit:
 							)
 					#it means that the gate is a MCU
 					else:
+						if gate[-1] == '0' or gate[-1] == '1':
+							#the gate is the Mif or Qif
+							gate = gate[0:len(gate)-1]
 						if gate == "Toffoli":
 							gate = "c1-c1-X"
 						if gate == "CNOT":
@@ -254,7 +256,22 @@ class Circuit:
 							bigger = max(indexOfTarget,j)
 							x1 = [x_position] * (bigger * partition - smaller * partition)
 							y1 = range(smaller * partition,bigger * partition)
-							Ax.plot(x1,y1,gateColor)
+
+							#print(gate)
+							#draw the control-line
+							
+							#if the gate is Mif or Qif							
+							if re.search(r'^(M\d-)+.+$',gate) != None:
+								#judge whether the gate is Mif-CNOT or Qif-CNOT
+								if re.search(r'(c\d-){1}',gate) != None and str(q.ids) == controlQubit[-1]:
+									#the gate is CNOT then judge whether the qubit is the penult element
+									Ax.plot(x1,y1,gateColor)
+								else:
+									gateColor = "black"
+									Ax.plot(x1,y1,gateColor,linestyle = ":")
+							else:	
+								Ax.plot(x1,y1,gateColor)
+							
 							indexOfCurrentQubit = controlQubit.index(str(q.ids))
 							#print(type(singleGateList[indexOfCurrentQubit][1:len(singleGateList[indexOfCurrentQubit])]))
 							if singleGateList[indexOfCurrentQubit][1:len(singleGateList[indexOfCurrentQubit])] == '0':
@@ -693,6 +710,16 @@ class Circuit:
 				#the gate NULL is to occupy the position
 				if gate == "NULL" or gate == "M":
 					continue
+				#the format of the gate is M1-M0-X...
+				if re.search(r'^(M\d-)+.+$',gate) != None:
+					if gate[-1] == "0":
+						#the gate isn't executed
+						continue
+					else:
+						if "CNOT" in gate:
+							Multi += 1
+						else:
+							Single += 1
 				#the format of the gate is c1-c0-X...
 				if re.search(r'^(c\d-)+.+$',gate) != None:
 					#if the gate is c1-c1-X, then actually we count the gate for 3 times
@@ -704,6 +731,17 @@ class Circuit:
 			for key in self.qubitExecuteListOD:
 				for operator in self.qubitExecuteListOD[key]:
 					gate = operator.split(" ")[0]
+					#the format of the gate is M1-M0-X...
+					if re.search(r'^(M\d-)+.+$',gate) != None:
+						if gate[-1] == "0":
+							#the gate isn't executed
+							continue
+						else:
+							if "CNOT" in gate:
+								DoubleOD += 1
+							else:
+								SingleOD += 1
+						continue
 					#the gate NULL is to occupy the position
 					if gate == "NULL" or gate == "M":
 						continue

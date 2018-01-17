@@ -5,7 +5,8 @@ import copy
 #only X,Y,Z,I,H,S,Sd,T,Td,CNOT is allowed
 import re
 
-#delay measure opertor class
+
+#delay measure opertor class used in DMif
 class DMO:
 	def __init__(self,ql,vl):
 		#storage the control-qubit list
@@ -43,8 +44,9 @@ class DMO:
 		return (cgn + "-" + gn)
 
 
+
 	#the "cq" is the control-qubit of the CNOT gate
-	def __Operator(self,gateName:str,tq:Qubit,cq = None,angle = None):
+	def Operator(self,gateName:str,tq:Qubit,cq = None,angle = None):
 
 		ql = self.DMOql.copy()
 		vl = self.DMOvl.copy()
@@ -70,49 +72,178 @@ class DMO:
 
 	def X(self,q:Qubit):
 		gateName = "X"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def Y(self,q:Qubit):
 		gateName = "Y"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def Z(self,q:Qubit):
 		gateName = "Z"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def H(self,q:Qubit):
 		gateName = "H"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def S(self,q:Qubit):
 		gateName = "S"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def Sd(self,q:Qubit):
 		gateName = "Sd"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def T(self,q:Qubit):
 		gateName = "T"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def Td(self,q:Qubit):
 		gateName = "Td"
-		return self.__Operator(gateName,q)
+		return self.Operator(gateName,q)
 
 	def CNOT(self,q1:Qubit,q2:Qubit):
 		gateName = "X"
-		return self.__Operator(gateName,q2,q1)
+		return self.Operator(gateName,q2,q1)
 
 	def Rz(self,phi,q:Qubit):
 		gateName = "Rz"
-		return self.__Operator(gateName,q,None,phi)
+		return self.Operator(gateName,q,None,phi)
 
 	def Ry(self,phi,q:Qubit):
 		gateName = "Ry"
-		return self.__Operator(gateName,q,None,phi)
+		return self.Operator(gateName,q,None,phi)
 
 
+
+#measure operator class used in Mif and Qif
+class MO(DMO):
+	def __init__(self,ql,vl):
+		self.MOql = ql
+		self.MOvl = vl
+		self.header = ""
+		bitList = self.MO(ql,vl)
+		self.bool = True
+		
+		if len(vl) == 1:
+			for bit in bitList:
+				if bit.value != vl[0]:
+					self.bool = False
+					break
+		else:
+			for j in range(0,len(bitList)):
+				if bitList[j] != vl[j]:
+					self.bool = False
+					break
+
+
+	#this kind of measure is used in Qif and Mif;
+	#ql means the qubit list need be measured; and the vl stands for the target result of measurement
+	def MO(self,ql:list,vl:list):
+		if len(ql) != len(vl):
+			try:
+				raise CodeError("The element number of Qubit List should be same with Value List!")
+			except CodeError as ce:
+				info = get_curl_info()
+				funName = info[0]
+				line = info[1]
+				writeErrorMsg(ce,funName,line)
+		bitList = []
+		for q in ql:
+			bitList.append(M(q,False))
+
+		#construct the if statement
+		# ifstr = "if ("
+		# for i in range(0,len(ql)):
+		# 	c = str(ql[i].ids)
+		# 	tmp = "c[" + c + "]==" + str(vl[i])
+		# 	if i != len(ql)-1:
+		# 		tmp += " && "
+		# 	ifstr += tmp
+		# ifstr += "){}"
+		ifstr = ""
+		for v in vl:
+			ifstr += "M" + str(v) + "-"
+		self.header = ifstr
+
+		return bitList
+
+	def recordGate(self,gate:str,ql:list):
+		circuit = checkEnvironment()
+		maxL = 0
+		content = gate + " "
+		for i in range(0,len(ql)):
+			length = len(circuit.qubitExecuteList[ql[i]])
+			maxL = max(length,maxL)
+			content += str(ql[i].ids)
+			if i != len(ql)-1:
+				content += ','
+
+		for q in ql:
+			try:
+				while len(circuit.qubitExecuteList[q]) < maxL:
+					circuit.qubitExecuteList[q].append("NULL "+str(q.ids))
+				circuit.qubitExecuteList[q].append(content)
+				if circuit.withOD:
+					while len(circuit.qubitExecuteListOD[q]) < maxL:
+						circuit.qubitExecuteListOD[q].append("NULL "+str(q.ids))
+					circuit.qubitExecuteListOD[q].append(content)
+			except KeyError:
+				info = get_curl_info()
+				writeErrorMsg("Qubit: q" + str(q.ids) + " hasn't been stored in circuit.qubitExeucetList!\
+					" ,info[0],info[1])
+
+		# print(circuit.qubitExecuteList)
+		# print(circuit.qubitExecuteListOD)
+
+	#overwrite the operator method
+	def Operator(self,gateName:str,tq:Qubit,cq = None,angle = None):
+		if cq != None:
+			gateName = "c1-X"
+		fullGName = self.header + gateName
+
+		#no matter what's self.bool, record the Measure Operator in qubitExecuteList
+		if self.bool:
+			#if the last position of the full gate name is 1, then the gate is executed
+			fullGName += "1"
+		else:
+			#if the last position of the gate name is 0, then the gate isn't executed
+			fullGName += "0"
+		ql = self.MOql.copy()
+		if cq != None:
+			ql.append(cq)
+		ql.append(tq)
+		self.recordGate(fullGName,ql)
+
+		#execute the operator according to self.bool
+		q = None
+		if self.bool:
+			#execute the gate function in Gate.py
+			if cq == None:
+				exeStr = "q = " + gateName + "(tq,False,True)"
+			else:
+				exeStr = "q = " + gateName + "(cq,tq,False,True)"
+			#print(exeStr)
+			exec(exeStr)
+		else:
+			#don't exeucte the gate
+			pass
+
+		return q
+
+	#the single gate operator and the double gate operator were inherited from DMO class
+	#def X
+	#def Y
+	#def Z
+	#def H
+	#def S
+	#def Sd
+	#def T
+	#def Td
+	#def CNOT
+	#def Rz
+	#def Ry
+	#def get_curl_info
 
 	
 		
