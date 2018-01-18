@@ -89,7 +89,10 @@ class Circuit:
 
 		if self.withOD:
 			self.qubitNumOD = 0
-			self.qubitExecuteListOD = {}		
+			self.qubitExecuteListOD = {}	
+		#the if statement of QASM will be stored in this dict so that the statement won't be repeated
+		self.IFList = []	
+		self.IFDic = {}
 
 
 	#the destory function
@@ -137,6 +140,121 @@ class Circuit:
 			else:
 				AC += 1
 		return [AX,AC]
+
+	#if the statement is Qif or Mif, then execute the method
+	#"content" stands for the executive record of this qubit 
+	#"gate" stands for the gate name
+	#"m" stands for the m-th record in content
+	#"qubits" stands for the string consisted of q.ids and "," as separator
+	#"code" stands for the QASM list
+	#if the function return False, then the gate isn't the Mif or Qif
+	def __generateIF(self,content,gate,m,qubits,code):
+		#judge whether the statement is the "if-statement"
+		if re.search(r'^(M\d-)+.+$',gate) != None:
+			#Mif or Qif
+
+			MgateList = re.findall(r'(M\d)',gate)
+			#construct the control guard
+			guard = ""
+			for j in range(0,len(MgateList)):
+				guard += "M[" + qubits[j] + "]=" + MgateList[j].split("M")[1]
+				if j != len(MgateList)-1:
+					guard += " && "
+
+			#judge whether the qubit is the measured qubit 
+			#or qubits are required to act quantum gate
+			tag = False
+			for k in range(0,m):
+				if re.search(r'^M \d+$',content[k]) != None:
+					#the measured qubit
+					if guard in self.IFList:
+						pass
+					else:
+						#construct the if-statement
+						ifStr = "if("
+						for j in range(0,len(MgateList)):
+							tmpStr = "c[" + qubits[j] + "]=="
+							tmpStr += MgateList[j][1]
+							if j != len(MgateList)-1:
+								tmpStr += " && "
+							ifStr += tmpStr
+						ifStr += ")"
+						code.append(ifStr)
+						self.IFList.append(guard)
+					tag = True
+					break
+
+			#qubits are required to act quantum gate
+			if tag == False:
+				#store the statement in self.IFStatement and write them to QASM.txt in the end of the method
+				statement = ""
+				gl = gate.split("-")
+				if len(gl) != len(qubits):
+					try:
+						raise CodeError("The gate number isn't same with the qubit number!")
+					except CodeError as ce:
+						info = helperFunction.get_curl_info()
+						funName = info[0]
+						line = info[1]
+						interactCfg.writeErrorMsg(ce,funName,line)
+
+				ifGate = ""
+				ifQ = ""
+				for i in range(0,len(gl)):
+					if re.search(r'^M\d$',gl[i]) != None:
+						pass
+					else:
+						ifGate += gl[i]
+						ifQ += "q["+qubits[i]+"]"
+						if i != len(gl)-1:
+							ifQ += ","
+				if re.search(r'^c\dX\d$',ifGate) != None:
+					ifGate = "CNOT"
+				else:
+					ifGate = ifGate[0:len(ifGate)-1]
+
+				#store the statement
+				reStr = ifGate + " " + ifQ + ";"
+				if guard not in self.IFDic:
+					self.IFDic[guard] = []
+				if reStr in self.IFDic[guard]:
+					pass
+				else:
+					self.IFDic[guard].append(reStr)
+			return True
+		return False
+
+	#write the statement to QASM.txt 
+	#"statement" stands for the QASM list
+	#and append the if statement according to self.IFDic and self.IFList
+	def __printCode(self,fileName,statement):
+		#append content in the original txt file
+		try:
+			code = open(fileName,"w")
+			for c in statement:
+				codeStr = ""
+				#the if statement
+				if re.search(r'if(.+)',c) != None:
+					#the format of c is "if(c[0]==1 && c[1]==0)"
+					codeStr = c + "{\n"			
+					guard = re.findall(r'\((.*?)\)',c)[0]
+					#the format of key is "M[0]=1 && M[1]=0"
+					guard = guard.replace("c","M").replace("==","=")
+					for s in self.IFDic[guard]:
+						#append the indentation
+						codeStr += "  "+ s + "\n"
+					codeStr += "}\n"
+				else:
+					codeStr = c
+				code.write(codeStr)
+			code.close()
+		except IOError:
+			info = helperFunction.get_curl_info()
+			interactCfg.writeErrorMsg("Can't write the QASM code to " + fileName + "!",info[0],info[1])
+
+		#restore the value of the IFDic and IFList
+		self.IFList = []
+		self.IFDic = {}
 
 
 	#draw the circuit according to the qubitExecuteList
@@ -219,7 +337,7 @@ class Circuit:
 						if gate == "CNOT":
 							gate = "c1-X"
 						singleGateList = gate.split("-")
-						U = singleGateList[len(singleGateList)-1]
+						U = singleGateList[-1]
 
 						#remove the parameter of the gate
 						if re.search(r'^R\w{1}\(.+\)$',U) != None:
@@ -227,7 +345,10 @@ class Circuit:
 
 						try:
 							if U == "X":
-								gateName = "+"
+								if re.search(r'M\d',gate) != None and singleGateList[len(singleGateList)-2] != "c1":
+									gateName = styleDic[U][0]
+								else:
+									gateName = "+"
 							else:
 								gateName = styleDic[U][0]
 							gateColor = styleDic[U][1]
@@ -322,9 +443,11 @@ class Circuit:
 		if alertMsg:
 			print("begin export the QASM code of the circuit...")
 		if self.checkEnvironment():
+			self.IFList = []
+			self.IFDic = {}
 			qubitNum = len(er.keys())
 			fileName = fileLocation + "QASM.txt"
-			code = open(fileName,"w")
+			code = []
 			#get the ids of the qubit
 			qubitList = []
 			for q in er.keys():
@@ -343,24 +466,40 @@ class Circuit:
 					if m > length-1:
 						continue
 					item = content[m]
+
 					qubits = item.split(" ")[1].split(",")
 					gate = item.split(" ")[0]
 					if gate == 'NULL':
 						continue
+					
+					if self.__generateIF(content,gate,m,qubits,code):
+						continue
+					else:
+						pass
+
+					#transform the format of the special case 
 					if gate == "Toffoli":
 						gate = "c1-c1-X"
-					if gate == "CNOT":
+					elif gate == "CNOT":
 						gate = "c1-X"
+					else:
+						pass
+
 					#if the gate is MCU and the current qubit is the target, that is ,
 					#the current qubit isn't in the first postion, then don't export the gate
-					
 					if re.search(r'^(c\d-)+.+$',gate) != None and str(qubitList[n].ids) != qubits[0]:
 						continue
+
+					#restore the format of the special case
 					if gate == "c1-c1-X":
 						gate = "Toffoli"
-					if gate == "c1-X":
+					elif gate == "c1-X":
 						gate = "CNOT"
-					code.write(gate + " ")
+					else:
+						pass
+
+					#print the line of QASM code to QASM.txt
+					tmpCode = gate + " "
 					if gate == "M":
 						if len(qubits) != 1:
 							try:
@@ -369,25 +508,33 @@ class Circuit:
 								info = helperFunction.get_curl_info()
 								funName = info[0]
 								line = info[1]
-								interactCfg.writeErrorMsg(ce.value,funName,line)
-						code.write("q[" + qubits[0] + "] -> c[" + qubits[0] +"];")
-						code.write("\n")
+								interactCfg.writeErrorMsg(ce,funName,line)
+						tmpCode += "q[" + qubits[0] + "] -> c[" + qubits[0] +"];"
+						tmpCode += "\n"
+						code.append(tmpCode)
 						continue
 					for i in range(0,len(qubits)):
-						code.write("q[" + qubits[i] + "]")
+						tmpCode += "q[" + qubits[i] + "]"
 						if i != len(qubits)-1:
-							code.write(",")
-					code.write(";")
-					code.write("\n")					
+							tmpCode += ","
+					tmpCode += ";"
+					tmpCode += "\n"		
+					code.append(tmpCode)			
 			#print("the code has been stored in " + self.urls.split("..")[1] + "/qasm.txt")
 			if alertMsg:
 				print("the QASM code has been exported!\n")
+			#write the Mif code or Qif code to QASM.txt
+			self.__printCode(fileName,code)
+
 			return True
 		else:
-			info = helperFunction.get_curl_info()
-			funName = info[0]
-			line = info[1]
-			interactCfg.writeErrorMsg("the instance is wrong, please check your code!",funName,line)
+			try:
+				raise EnvironmentError()
+			except EnvironmentError as ee:
+				info = helperFunction.get_curl_info()
+				funName = info[0]
+				line = info[1]
+				interactCfg.writeErrorMsg(ee,funName,line)
 
 	#export the result of the measurement to charts
 	def __exportChart(self,result:list,prob:list,title:str):

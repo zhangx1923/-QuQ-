@@ -4,7 +4,7 @@ def u():
 	c = Circuit(True)
 	q = Qubit()
 	qList = []
-	for i in range(0,3):
+	for i in range(0,2):
 		qList.append(Qubit())
 	#Rx(PI,qList[0])
 	#Rx(PI,qList[0])
@@ -13,16 +13,19 @@ def u():
 	#X(q)
 	#Toffoli(q,qList[0],qList[1])
 	#CNOT(qList[0],qList[1])
-	# with Mif([qList[0]],[0]) as mo:
-	# 	mo.X(q)
-	# 	mo.H(qList[1])
+	with Mif([qList[0],qList[1]],[0,0]) as mo:
+		mo.X(q)
+		#mo.H(qList[1])
+		#mo.CNOT(q,qList[1])
 		# mo.CNOT(qList[2],qList[1])
-
+	q1 = Qubit()
+	q2 = Qubit()
+	Rx(PI,q2)
 	#print(c.qubitExecuteListOD)
 	#Rx(PI/2,q)
-	with DMif([qList[0]],[0]) as dmo:
-		dmo.X(q)
-		dmo.H(qList[1])
+	with DMif([q1,q2],[0,1]) as dmo:
+		dmo.H(q)
+		#dmo.H(qList[1])
 		#q = dmo.Ry(PI,q)[-1]
 		#q = dmo.Rz(-PI/2,q)[-1]
 	# with DMif([qList[0],qList[1]],[1,0]) as dmo:
@@ -33,7 +36,5 @@ def u():
 	#M(q)
 	#QSprint(q)
 	M(q)
-	M(qList[1])
-	#print(c.qubitExecuteList)
-	#M(qList[0])
+	M(qList[0])
 	c.execute(1024)

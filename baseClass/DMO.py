@@ -216,6 +216,8 @@ class MO(DMO):
 		self.recordGate(fullGName,ql)
 
 		#execute the operator according to self.bool
+		if gateName == "c1-X":
+			gateName = "CNOT"
 		q = None
 		if self.bool:
 			#execute the gate function in Gate.py
