@@ -112,6 +112,9 @@ class IBMQX:
 
 	#translate the QASM to Open-QASM
 	#the parameter 'c' is the current Circuit instance
+
+	#return True: translate successfully!
+	#return False: there is if statement in the QASM code
 	def __translateQASM(self,c):
 		global QASM
 		#the code has been store in circuit.url/QASM.txt
@@ -127,6 +130,9 @@ class IBMQX:
 		file.close()
 
 		for item in codes:
+			#whether the statement is "if"
+			if re.search(r'if(.+)',item) != None:
+				return False
 			tmpCode = ""
 			tmp = item.split(" ")
 			gate = tmp[0]
@@ -154,6 +160,7 @@ class IBMQX:
 				line = info[1]
 			#print(tmpCode)
 			QASM.append(tmpCode)
+		return True
 
 
 	#adjust the QASM code, which is producted by circuit.QASM(), so that the qubits can satisfy the constraint
@@ -164,77 +171,87 @@ class IBMQX:
 			return None
 		global QASM,qubitList,CNOTList
 		QASM = []
-		print("Translating the QASM to Open-QASM...")
-		self.__translateQASM(circuit)
-		print("Optimizing the Open-QASM code, please wait for a while...")
-
-		#record the ids of qubits in the current circuit
-		qubitList = []
-		#record the cnot map in the current circuit
-		CNOTList = []
-
-		#find the num in the str
-		mode = re.compile(r'\d+')
-		#analyse the QASM code
-		for l in range(0,len(QASM)):
-			if l == 0:
-				continue
-			else:
-				qs = mode.findall(QASM[l])
-				if "measure" in QASM[l]:
-					qs = [qs[0]]
-				for q in qs:
-					if int(q) in qubitList:
-						continue
-					else:
-						qubitList.append(int(q))
-				if "cx" in QASM[l]:
-					#get the id of control-qubit and target-qubit
-					tQ = int(qs[1])
-					cQ = int(qs[0])
-					#the reverse cnot won't be appended to the list
-					if [cQ,tQ] in CNOTList or [tQ,cQ] in CNOTList:
-						continue
-					CNOTList.append([cQ,tQ])
-		
-		totalConnectivity = self.__getTotalConnectivity()
-
 		#record the reason for why can't execute the code
 		reasonList = []
-		cnotBool = True
-		idBool = True
-		idBool = self.__determindID(totalConnectivity,reasonList)
-		if idBool:
-			cnotBool = self.__checkAllConstraint(CNOTList,totalConnectivity)
-			if cnotBool == False:
-				#when __adjustCNOT was called, the CNOTList doesn't satisfy the constraint of IBM directly
-				cnotBool = self.__adjustCNOT(totalConnectivity,reasonList)
+		print("Translating the QASM to Open-QASM...")
+		if self.__translateQASM(circuit):
+			#translate successfully!
+			print("Optimizing the Open-QASM code, please wait for a while...")
 
-		#the circuit can be executed
-		if idBool & cnotBool:
-			numQ = str(len(totalConnectivity))
-			code = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + numQ + '];creg c[' + numQ + '];\n'
-			self.__reverseCNOT()
-			for line in QASM:
-				code += line
-			try:
-				file = open(circuit.urls + "/IBMQX/Open-QASM.txt","w")
-				file.write(code)	
-				file.close()	
-			except IOError:
-				info = get_curl_info()
-				funName = info[0]
-				line = info[1]
-				writeErrorMsg("Can't write QASM code to Open-QASM.txt!",funName,line)		
-			return code
+			#record the ids of qubits in the current circuit
+			qubitList = []
+			#record the cnot map in the current circuit
+			CNOTList = []
 
+			#find the num in the str
+			mode = re.compile(r'\d+')
+			#analyse the QASM code
+			for l in range(0,len(QASM)):
+				if l == 0:
+					continue
+				else:
+					qs = mode.findall(QASM[l])
+					if "measure" in QASM[l]:
+						qs = [qs[0]]
+					for q in qs:
+						if int(q) in qubitList:
+							continue
+						else:
+							qubitList.append(int(q))
+					if "cx" in QASM[l]:
+						#get the id of control-qubit and target-qubit
+						tQ = int(qs[1])
+						cQ = int(qs[0])
+						#the reverse cnot won't be appended to the list
+						if [cQ,tQ] in CNOTList or [tQ,cQ] in CNOTList:
+							continue
+						CNOTList.append([cQ,tQ])
+			
+			totalConnectivity = self.__getTotalConnectivity()
+
+			cnotBool = True
+			idBool = True
+			idBool = self.__determindID(totalConnectivity,reasonList)
+			if idBool:
+				cnotBool = self.__checkAllConstraint(CNOTList,totalConnectivity)
+				if cnotBool == False:
+					#when __adjustCNOT was called, the CNOTList doesn't satisfy the constraint of IBM directly
+					cnotBool = self.__adjustCNOT(totalConnectivity,reasonList)
+
+			#the circuit can be executed
+			if idBool & cnotBool:
+				numQ = str(len(totalConnectivity))
+				code = 'OPENQASM 2.0;include "qelib1.inc";qreg q[' + numQ + '];creg c[' + numQ + '];\n'
+				self.__reverseCNOT()
+				for line in QASM:
+					code += line
+				try:
+					file = open(circuit.urls + "/IBMQX/Open-QASM.txt","w")
+					file.write(code)	
+					file.close()	
+				except IOError:
+					info = get_curl_info()
+					funName = info[0]
+					line = info[1]
+					writeErrorMsg("Can't write QASM code to Open-QASM.txt!",funName,line)		
+				return code
+		else:
+			#if statement 
+			reasonList.append("The Mif and Qif aren't supported by IBMQX for now!")
+
+		#if statement or there is something wrong with the number of qubits or connectivity of qubits
+		self.__writeErrorMsg(circuit.urls,reasonList)
+
+
+	#write the reason why the code can't be executed on IBMQX
+	def __writeErrorMsg(self,urls,reasonList:list):
 		#can't execute the circuit
-		file = open(circuit.urls + "/IBMQX/codeWarning.txt",'a')
+		file = open(urls + "/IBMQX/codeWarning.txt",'a')
 		file.write("WARNING:\n")
 		#write the reason in codeWarning.txt
 		for i in range(0,len(reasonList)):
 			strs = str(i+1) + "." + reasonList[i] + "\n"
-			file.write(strs)
+			file.write(strs) 
 		return None
 
 	#add self.connectivity and reverse self.connectivity, the type of the returned parameter is dict
