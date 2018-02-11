@@ -3,7 +3,7 @@ from header import *
 #1.prepare the Bell state
 #2.implement the algorithm according to Nielsen and L.Chuang 
 def teleportation():
-	c = Circuit()
+	c = Circuit(True)
 	#store the unknow quantum state, the aim of this algorithm is teleporting the state of AliceQ to BobQ
 	AliceQ = Qubit()
 	#the two qubit is entanglement with each other

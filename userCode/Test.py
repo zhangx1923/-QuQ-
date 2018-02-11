@@ -36,5 +36,5 @@ def u():
 	#M(q)
 	#QSprint(q)
 	M(q)
-	M(qList[0])
+	#M(qList[0])
 	c.execute(1024)
