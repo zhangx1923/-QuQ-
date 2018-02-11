@@ -8,6 +8,7 @@ import os
 import sys
 import re
 from Gate import SplitGate
+import time
 
 #get the info about the function name and the line number
 def get_curl_info():
@@ -524,52 +525,133 @@ class IBMQX:
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("Can't connect to the server, Please try again later!",funName,line)
-		#analyse the message
+		res = self.__analyseData(data)
+		if res['status'] == 0:
+			#waiting 
+			blank = {}
+			resOfExe = self.__query(res['msg'])
+			if resOfExe == blank:
+				print("The experiment is still waiting in the executive queue, We'll query every 5 seconds! You can also find the result on the Web of IBM Quantum Experience!")
+			while resOfExe == blank:
+				#still no result
+				print("Waiting in the queue...")
+				#sleep for 5 seconds
+				time.sleep(5)
+				resOfExe = self.__query(res['msg'])
+			#get the result
+			
+
+
+			
+		elif res['status'] == 2:
+			#wrong
+			self.__writeRaWData(data)
+		else:
+			#successful
+			self.__writeRaWData(data)
+			self.__writeAnalyData(res['msg'])
+
+
+
+	#analyse the date
+	##############################################
+	#the return value is a Dict{'status':0,"msg":None}
+	#if successful, then status is 1 and msg is the data analysed
+	#if waiting, then status is 0 and msg is the id of the experiment
+	#if error, then status is 2 and msg is None
+	###############################################
+	def __analyseData(self,data):
+		res = {'status':0,"msg":None}
 		try:
-			file = open(circuit.urls + "/IBMQX/rawData_IBMQX.txt","w",encoding='utf-8')
-			file.write(str(data))
-			file.close()
+			#judge the status of the experiment
+			status = data['status']
+			if status == "WORKING_IN_PROGRESS":
+				#still in queue
+				#then get the id of the experiment
+				ids = data['idExecution']
+				res['status'] = 0
+				res['msg'] = ids
+				return res
+
+			elif status == "":
+				#successful
+				status = data['status']
+				result = data['result']
+				measure = result['measure']
+				qubits = measure['qubits']
+				labels = measure['labels']
+				values = measure['values']
+				rList = []
+				for i in range(0,len(labels)):
+					states = ""
+					for q in qubits:
+						state = labels[i][len(labels[i])-q-1]
+						states += state
+					rList.append([states,values[i]])
+				dataMsg = "-" * 30
+				dataMsg += " the data of IBMQX "
+				dataMsg += "-" * 31
+				dataMsg += "\r\n"
+				dataMsg += "Result:\r\n"
+				for r in rList:
+					prob = float(r[1]) * 100
+					dataMsg += " "*8+"|" + r[0] + ">----%.2f%%"%(prob)
+					dataMsg += "\r\n"
+				dataMsg += "-" * 80
+				print(dataMsg)
+				res['status'] = 1
+				res['msg'] = dataMsg
+				return res
+
+			else:
+				#there is something wrong
+				res['status'] = 2
+				res['msg'] = None
+				return 1
+
+		except KeyError:
+			info = get_curl_info()
+			funName = info[0]
+			line = info[1]
+			writeErrorMsg("There are some keys aren't in the result returned by IBMQX!",funName,line)			
+		
+	#write the raw data of IBMQX to file
+	def __writeRaWData(self,rawData):
+		if rawData == "":
+			return False
+		#write the date to file 
+		try:
+			rawDataFile = open(circuit.urls + "/IBMQX/rawData_IBMQX.txt","w",encoding='utf-8')
+			rawDataFile.write(rawData)
+			rawDataFile.close()
 		except IOError:
 			info = get_curl_info()
 			funName = info[0]
 			line = info[1]
 			writeErrorMsg("Can't write the raw data of IBMQX to rawData_IBMQX.txt!",funName,line)
+
+	#write the data analysed of IBMQX to file
+	def __writeAnalyData(self,data):
+		if data == "":
+			return False
+		#write the data to Data_IBMQX.txt
 		try:
-			status = data['status']
-			result = data['result']
-			measure = result['measure']
-			qubits = measure['qubits']
-			labels = measure['labels']
-			values = measure['values']
-			rList = []
-			for i in range(0,len(labels)):
-				states = ""
-				for q in qubits:
-					state = labels[i][len(labels[i])-q-1]
-					states += state
-				rList.append([states,values[i]])
-			dataMsg = "-" * 30
-			dataMsg += " the data of IBMQX "
-			dataMsg += "-" * 31
-			dataMsg += "\r\n"
-			dataMsg += "Result:\r\n"
-			for r in rList:
-				prob = float(r[1]) * 100
-				dataMsg += " "*8+"|" + r[0] + ">----%.2f%%"%(prob)
-				dataMsg += "\r\n"
-			dataMsg += "-" * 80
-			print(dataMsg)
-		except KeyError:
-			info = get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("There are some keys aren't in the result returned by IBMQX!",funName,line)
-		try:
-			file = open(circuit.urls + "/IBMQX/Data_IBMQX.txt","w",encoding='utf-8')
-			file.write(dataMsg)
-			file.close()
+			dataFile = open(circuit.urls + "/IBMQX/Data_IBMQX.txt","w",encoding='utf-8')
+			dataFile.write(Data)
+			dataFile.close()	
 		except IOError:
 			info = get_curl_info()
 			funName = info[0]
 			line = info[1]
-			writeErrorMsg("Can't write the raw data of IBMQX to Data_IBMQX.txt!",funName,line)
+			writeErrorMsg("Can't write the data of IBMQX to Data_IBMQX.txt!",funName,line)	
+
+	#get information (including the Code information) about a specific Execution of a Code,
+	#the parameter "id_execution" is the id of the experiment
+	def __query(self,id_execution):
+		res = self.api.get_result_from_execution(id_execution)
+		# print(res)
+		return res
+
+	# def test(self):
+	# 	res = self.api.get_result_from_execution("ff5b9f00a8333ee1f5586699c45a5bc8")
+	# 	print(res)
