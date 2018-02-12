@@ -769,7 +769,7 @@ class Circuit:
 			############################get the QASM and circuit######################################
 			if self.ibm:
 				ibm = IBMQX()
-				#ibm.test()
+				# ibm.test()
 				ibm.executeQASM()
 			#call the destory function to clean the current instance
 			self.__del__()

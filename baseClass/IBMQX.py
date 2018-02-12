@@ -526,6 +526,8 @@ class IBMQX:
 			line = info[1]
 			writeErrorMsg("Can't connect to the server, Please try again later!",funName,line)
 		res = self.__analyseData(data)
+
+		#get the result analysed
 		if res['status'] == 0:
 			#waiting 
 			blank = {}
@@ -539,9 +541,30 @@ class IBMQX:
 				time.sleep(5)
 				resOfExe = self.__query(res['msg'])
 			#get the result
-			
-
-
+			self.__writeRaWData(resOFExe)
+			measure = resOFExe['measure']
+			qubits = measure['qubits']
+			labels = measure['labels']
+			values = measure['values']
+			rList = []
+			for i in range(0,len(labels)):
+				states = ""
+				for q in qubits:
+					state = labels[i][len(labels[i])-q-1]
+					states += state
+				rList.append([states,values[i]])
+			dataMsg = "-" * 30
+			dataMsg += " the data of IBMQX "
+			dataMsg += "-" * 31
+			dataMsg += "\r\n"
+			dataMsg += "Result:\r\n"
+			for r in rList:
+				prob = float(r[1]) * 100
+				dataMsg += " "*8+"|" + r[0] + ">----%.2f%%"%(prob)
+				dataMsg += "\r\n"
+			dataMsg += "-" * 80
+			print(dataMsg)		
+			self.__writeAnalyData(dataMsg)	
 			
 		elif res['status'] == 2:
 			#wrong
@@ -652,6 +675,6 @@ class IBMQX:
 		# print(res)
 		return res
 
-	# def test(self):
-	# 	res = self.api.get_result_from_execution("ff5b9f00a8333ee1f5586699c45a5bc8")
-	# 	print(res)
+	def test(self):
+		res = self.api.get_result_from_execution("ff5b9f00a8333ee1f5586699c45a5bc8")
+		print(res)
