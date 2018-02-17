@@ -154,13 +154,17 @@ def repeatElement(lt:list):
 
 #create a folder and the parameter "" stands for the name of the folder
 def createFolder(name):
+	tmp = 1
 	#create a new folder according to the parameter "name"
-	if os.path.exists(name) == False:
-		#the whole result of the experiment is stored in this folder
-		try:
-			os.makedirs(name) 
-		except OSError:
-			info = helperFunction.get_curl_info()
-			funName = info[0]
-			line = info[1]
-			writeErrorMsg("Can't create the new folder '" + self.name + "'!",funName,line)	
+	while os.path.exists(name) == True:
+		name += str(tmp)
+		tmp += 1
+	
+	#the whole result of the experiment is stored in this folder
+	try:
+		os.makedirs(name) 
+	except OSError:
+		info = helperFunction.get_curl_info()
+		funName = info[0]
+		line = info[1]
+		writeErrorMsg("Can't create the new folder '" + self.name + "'!",funName,line)	
