@@ -53,7 +53,7 @@ class Circuit:
 	def __init__(self,withOriginalData = False,experimentName=None):
 		self.beginMemory = psutil.Process(os.getpid()).memory_info().rss
 		self.endMemory = 0
-		self.beginTime = datetime.datetime.now()
+		self.beginTime = 0
 		self.endTime = 0
 		if experimentName == None:
 			dt = self.beginTime
