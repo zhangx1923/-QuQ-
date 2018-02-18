@@ -93,6 +93,9 @@ class Circuit:
 		#the if statement of QASM will be stored in this dict so that the statement won't be repeated
 		self.IFList = []	
 		self.IFDic = {}
+		#update the value 
+		self.beginMemory = psutil.Process(os.getpid()).memory_info().rss
+		self.beginTime = datetime.datetime.now()
 
 
 	#the destory function
