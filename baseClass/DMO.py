@@ -137,7 +137,7 @@ class MO(DMO):
 					break
 
 
-	#this kind of measure is used in Qif and Mif;
+	#this kind of measure is used in Mif;
 	#ql means the qubit list need be measured; and the vl stands for the target result of measurement
 	def MO(self,ql:list,vl:list):
 		if len(ql) != len(vl):
@@ -249,3 +249,18 @@ class MO(DMO):
 
 	
 		
+
+
+#delay measure operator class used in Qwhile
+class QWMO(DMO):
+	def __init__(self,ql,vl,angle):
+		DMO.__init__(ql,vl)
+		self.angle = angle
+
+	def end(self):
+		for q in ql:
+			Rx(angle,q)
+		if True:
+			return True
+		else:
+			return False

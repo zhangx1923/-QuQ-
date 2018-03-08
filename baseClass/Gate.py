@@ -344,6 +344,12 @@ def CNOT(q1:Qubit,q2:Qubit,record = True,forceQuit = False):
 	return gate.CNOTOperator(record,forceQuit = forceQuit)
 
 
+def ControlledZ(q1:Qubit,q2:Qubit,record = True,forceQuit = False):
+	H(q2,record,forceQuit)
+	CNOT(q1,q2,record,forceQuit)
+	H(q2,record,forceQuit)
+	return q1.entanglement
+
 #execute the measurement, the types of the first argument must be Qubit; the second argument is optional,
 #if the parameter "result" is "False", then the result of the measurement won't be appeared in the end result 
 def M(q:Qubit,result = True):

@@ -24,6 +24,8 @@ class Qubit(BaseQubit):
 	mode = interactCfg.readCfgEM()
 	#use the list to store the ids, so that ID won't repeat
 	idList = []
+	#figure out the number of the Qubit in <QuQ>, and the value of the parameter can only increase
+	totalNum = 0
 	#the physical process of "preparation" is described as this function
 	#mode='theory' or 'simulator', the user manual introduce details of the arguments
 
@@ -38,10 +40,7 @@ class Qubit(BaseQubit):
 		#show whether the qubit was in entanglement
 		self.entanglement = None
 		if ids == None:
-			if len(Qubit.idList) == 0:
-				ids = 0
-			else:
-				ids = max(Qubit.idList) + 1
+			ids = Qubit.totalNum + 1
 		#the index of the current qubit, the range is from 0 to n
 		if ids in Qubit.idList:
 			try:
@@ -52,6 +51,7 @@ class Qubit(BaseQubit):
 				line = info[1]
 				interactCfg.writeErrorMsg(ir,funName,line)
 		self.ids = ids
+		Qubit.totalNum += 1
 		Qubit.idList.append(ids)
 		#set the initial value of the qubit according to the mode 
 		if self.mode == 'simulator':

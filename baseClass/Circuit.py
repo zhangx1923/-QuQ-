@@ -51,9 +51,9 @@ class Circuit:
 	#the parameter "withOriginalData" is True, then record the componone elements of MCU
 	#instead of the whole gateName. And in this mode, it will figure out more detailed data
 	def __init__(self,withOriginalData = False,experimentName=None):
-		self.beginMemory = psutil.Process(os.getpid()).memory_info().rss
+		self.beginMemory = 0
 		self.endMemory = 0
-		self.beginTime = 0
+		self.beginTime = datetime.datetime.now()
 		self.endTime = 0
 		if experimentName == None:
 			dt = self.beginTime
@@ -93,7 +93,7 @@ class Circuit:
 		#the if statement of QASM will be stored in this dict so that the statement won't be repeated
 		self.IFList = []	
 		self.IFDic = {}
-		#update the value 
+		#update the value
 		self.beginMemory = psutil.Process(os.getpid()).memory_info().rss
 		self.beginTime = datetime.datetime.now()
 
@@ -391,7 +391,7 @@ class Circuit:
 									#the gate is CNOT then judge whether the qubit is the penult element
 									Ax.plot(x1,y1,gateColor)
 								else:
-									gateColor = "black"
+									#gateColor = "black"
 									Ax.plot(x1,y1,gateColor,linestyle = ":")
 							else:	
 								Ax.plot(x1,y1,gateColor)
@@ -614,6 +614,7 @@ class Circuit:
 
 	#execute measurement on the qubits
 	def execute(self,executeTimes:int):
+		#print(self.qubitExecuteList)
 		if self.checkEnvironment():
 			probList = []
 			stateList = []
@@ -690,10 +691,11 @@ class Circuit:
 			#e.g., prob = [0.5,0.5],state = ['11','00']
 			#the state is 0.7|11> + 0.7|00>
 			if len(probList) == 0 and len(stateList) == 0:
-				info = helperFunction.get_curl_info()
-				funName = info[0]
-				line = info[1]
-				interactCfg.writeErrorMsg("there is no qubit need to be measured!",funName,line)
+				#get the end time of the circuit
+				self.endTime = datetime.datetime.now()
+				self.endMemory = psutil.Process(os.getpid()).memory_info().rss
+				#there is no qubit has been measured
+				return False
 			#print(stateList)
 			prob = probList[0]
 			state = stateList[0]

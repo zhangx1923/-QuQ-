@@ -2,13 +2,36 @@ from header import *
 
 def u():
 	c = Circuit(True)
-	q = Qubit()
+	q0 = Qubit()
 	q1 = Qubit()
 	q2 = Qubit()
-	X(q)
-	X(q1)
-	Toffoli(q,q1,q2)
-	M(q2)
+	q3 = Qubit()
+	Rx(PI/4,q3)
+	Rx(PI/4,q3)
+	Rx(PI/4,q3)
+	Rx(PI/4,q3)
+	# with DMif([q0,q1],[1,0]) as dmo:
+	# 	dmo.H(q2)
+	# 	dmo.CNOT(q2,q3)
+	# with Qif([q0,q1],[1,0]) as isTrue:
+	# 	if isTrue:
+	# 		H(q2)
+	# 		CNOT(q2,q3)
+	#M(q2)
+	M(q3)
+	c.execute(1024)
+	# bt = c.beginTime
+	# bm = c.beginMemory
+	# sums = 1
+	# for i in range(1,2001):
+	# 	sums *= i
+	# 	time.sleep(0.001)
+	# c.execute(1)
+	# et = c.endTime
+	# em = c.endMemory
+	# print("消耗时间：%d S"%(et-bt).total_seconds())
+	# print("占用内存：%d bit"%(em-bm))
+	#c.execute(1)
 	# q = Qubit()
 	# qList = []
 	# for i in range(0,2):
@@ -44,4 +67,4 @@ def u():
 	# #QSprint(q)
 	# M(q)
 	# #M(qList[0])
-	c.execute(1024)
+	#c.execute(1024)
