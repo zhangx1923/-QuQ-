@@ -152,7 +152,16 @@ class Gate:
 			#store the measurement qubit in the self.measureList
 			circuit.measureList.append(q)
 
-		return q.degenerate()
+		bit = q.degenerate()
+		value = bit.value
+		newMatrix = []
+		if value == 0:
+			newMatrix = [[1],[0]]
+		else:
+			newMatrix = [[0],[1]]
+		q.setMatrix(newMatrix)
+
+		return bit
 		#return data.degenerate()
 
 	#get the info about the function name and the line number

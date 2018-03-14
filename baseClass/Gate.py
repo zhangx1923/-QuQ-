@@ -356,6 +356,8 @@ def M(q:Qubit,result = True):
 	I = [[1,0],[0,1]]
 	#print([q])
 	gate = Gate([q],I,"M")
+	#the measurement will return a Bit type
+	#but the qubit "q" is still a Qubit and the status of it is |0> or |1> according to the value of the Bit
 	return gate.MOperator(result)
 
 
