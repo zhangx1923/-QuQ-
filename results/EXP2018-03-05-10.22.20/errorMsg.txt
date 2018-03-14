@@ -1,5 +1,0 @@
-Time:2018-03-05 10:22:22.112563
-Error Message: Error Type: IDRepeatError
-Error Message: The id of this bit has been used, please choose another id!
-Function Name: __init__()
-Line: 31
