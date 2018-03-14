@@ -70,20 +70,24 @@ def readCfgP():
 
 #read the config file about the assignment error (ER for short)
 def readCfgER(ids):
-	try:
-		ERcfg = cfgLocation + "errorRate.cfg"
-		confFile = open(ERcfg,"r")
-		content = confFile.readline()
-		errorList = json.loads(content)['assignmentError']
-		#our data is equal with IBMqx5, there are only 15qubits; so we only have 15 items 
-		#if current id is bigger then 15, compute ids%15
-		errorRate = float(errorList[str(ids%15)])
-	except IOError as io:
-		writeErrorMsg(io)
-	except KeyError as ke:
-		writeErrorMsg("Key: "+ str(ke) + "doesn't exist in errorRate.cfg, please check the cfg file!")
-	confFile.close()
-	return errorRate
+	#the error of readout error is the fidelity, and shouldn't be read directly
+	#it's the cumulative results in average
+	return 0.0
+
+	# try:
+	# 	ERcfg = cfgLocation + "errorRate.cfg"
+	# 	confFile = open(ERcfg,"r")
+	# 	content = confFile.readline()
+	# 	errorList = json.loads(content)['assignmentError']
+	# 	#our data is equal with IBMqx5, there are only 15qubits; so we only have 15 items 
+	# 	#if current id is bigger then 15, compute ids%15
+	# 	errorRate = float(errorList[str(ids%15)])
+	# except IOError as io:
+	# 	writeErrorMsg(io)
+	# except KeyError as ke:
+	# 	writeErrorMsg("Key: "+ str(ke) + "doesn't exist in errorRate.cfg, please check the cfg file!")
+	# confFile.close()
+	# return errorRate
 
 #read the config file about the gate error (GE for short)
 #if the para gateType == single, then get the single-qubit gate error according to the qid
